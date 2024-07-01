@@ -63,11 +63,43 @@ DataTypes = Literal[
 logger = logging.getLogger(__name__)
 
 
-def get_nodes_by_type():
+def get_nodes_by_type(nodes_by_type: dict, node_type: str) -> list:
+    """Retrieve nodes of a specific type from a node dictionary.
+
+    Parameters
+    ----------
+    nodes_by_type : dict
+        A dictionary where keys are node types and values are lists of nodes.
+
+    node_type : str
+        The type of node to retrieve.
+
+    Returns
+    -------
+    list
+        A list of nodes of the specified type sorted by namespace and ID.
+    """
+    if node_type not in nodes_by_type:
+        logger.warning(f"Node type '{node_type}' not found in dictionary. Returning empty list.")
+        return []
     nodes = sorted(nodes_by_type[node_type], key=lambda x: (x["db_ns"], x["db_id"]))
+    return nodes
+
 
     
 def validate_node_data(processor_name:str, nodes: list[dict]) -> None:
+    """Validate the node data before yielding them.
+
+    Parameters
+    ----------
+    processor_name : str
+        The name of the processor.
+
+    nodes : list[dict]
+        The nodes to validate.
+    """
+
+    # Get the metadata from the nodes
     metadata = sorted(set(key for node in nodes for key in node.data))
     header = "id:ID", ":LABEL", *metadata
     
@@ -87,6 +119,15 @@ def validate_node_data(processor_name:str, nodes: list[dict]) -> None:
 
 
 def validate_edge_data(processor_name:str, edges: list[dict]) -> None:
+    """Validate the edge data before yielding them.
+
+    Parameters
+    ----------
+    processor_name : str
+        The name of the processor.
+    edges : list[dict]
+        The edges to validate.
+    """
     metadata = sorted(set(key for edge in edges for key in edge.data))
     header = ":START_ID", ":END_ID", ":TYPE", *metadata
 
@@ -143,13 +184,13 @@ def validate_nodes(
 
     Parameters
     ----------
-    nodes :
+    nodes : Iterable[dict]
         The nodes to validate.
-    header :
+    header : Iterable[str]
         The header of the output Neo4j ingest file.
-    check_all_data :
+    check_all_data : bool
         If True, check all data keys in the nodes. If False, stop checking
-        when all data keys have been checked.
+        when all data keys have been checked. Default: True
 
     Raises
     ------
@@ -193,13 +234,13 @@ def validate_edges(
 
     Parameters
     ----------
-    relations :
+    relations : Iterable[dict]
         The relations to validate.
-    header :
+    header : Iterable[str]
         The header of the output Neo4j ingest file.
-    check_all_data :
+    check_all_data : bool
         If True, check all data keys in the relations. If False, stop checking
-        when all data keys have been checked.
+        when all data keys have been checked. Default: True
 
     Raises
     ------
@@ -237,7 +278,18 @@ def validate_edges(
 
     
 def validate_headers(headers: Iterable[str]) -> None:
-    """Check for data types in the headers"""
+    """Check for data types in the headers
+
+    Parameters
+    ----------
+    headers : Iterable[str]
+        The headers to check for data types
+
+    Raises
+    ------
+    TypeError
+        If a data type is not recognized by Neo4j
+    """
     for header in headers:
         # If : is in the header and there is something after it check if
         # it's a valid data type
@@ -267,9 +319,9 @@ def data_validator(data_type: str, value: Any):
 
     Parameters
     ----------
-    data_type :
+    data_type : str
         The Neo4j data type to validate against.
-    value :
+    value : Any
         The value to validate.
 
     Raises

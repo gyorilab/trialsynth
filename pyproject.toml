@@ -2,7 +2,7 @@
 name = "trialsynth"
 version = "0.1.0-alpha"
 description = "Extracts clinical trial information from sources"
-authors = ["jim-sheldon <5619539+jim-sheldon@users.noreply.github.com>"]
+authors = ["tomooga <oga.t@northeastern.edu>", "jim-sheldon <5619539+jim-sheldon@users.noreply.github.com>"]
 license = "BSD-2-Clause"
 readme = "README.md"
 
@@ -27,6 +27,7 @@ requests = "^2.31.0"
 click = "^8.1.7"
 addict = "^2.4.0"
 pydantic = "^2.7.1"
+bioregistry = "^0.11.6"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.1.1"

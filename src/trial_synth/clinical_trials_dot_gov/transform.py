@@ -1,7 +1,7 @@
 from collections import Counter
 import logging
 import re
-from typing import Iterator
+from typing import Iterator, Optional
 
 from addict import Dict
 import pandas as pd
@@ -12,7 +12,6 @@ from indra.databases import mesh_client
 from indra.ontology.standardize import standardize_name_db_refs
 from indra.statements.agent import get_grounding
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -22,16 +21,44 @@ def or_na(x):
 
 
 def isna(x):
+    """
+    Check if a value is NaN or None.
+    """
     return True if pd.isna(x) or not x else False
 
 
 def _get_phase(phase_string: str) -> int:
+    """Extract the phase number from a phase string.
+
+    Parameters
+    ----------
+    phase_string : str
+        The phase string to extract the phase number from.
+
+    Returns
+    -------
+    int
+        The phase number extracted from the phase string.
+    """
     if phase_string and pd.notna(phase_string) and phase_string[-1].isdigit():
         return int(phase_string[-1])
     return -1
 
 
-def _get_start_year(start_date: str) -> int | None:
+def _get_start_year(start_date: str) -> Optional[int]:
+    """
+    Extract the start year from a start date string.
+
+    Parameters
+    ----------
+    start_date : str
+        The start date string to extract the start year from.
+
+    Returns
+    -------
+    Optional[int]
+        The start year extracted from the start date string.
+    """
     if isna(start_date):
         return None
     match = re.search(r"\d{4}", start_date)
@@ -40,7 +67,22 @@ def _get_start_year(start_date: str) -> int | None:
     return None
 
 
-def get_correct_mesh_id(mesh_id, mesh_term=None):
+def get_correct_mesh_id(mesh_id: str, mesh_term: Optional[str] = None) -> str:
+    """
+    Get a correct MeSH ID from a possibly incorrect one.
+
+    Parameters
+    ----------
+    mesh_id : str
+        The MeSH ID to correct.
+    mesh_term : Optional[str]
+        The MeSH term corresponding to the MeSH ID. Default: None
+
+    Returns
+    -------
+    str
+        The corrected MeSH ID.
+    """
     # A proxy for checking whether something is a valid MeSH term is
     # to look up its name
     name = mesh_client.get_mesh_name(mesh_id, offline=True)
@@ -68,6 +110,18 @@ def get_correct_mesh_id(mesh_id, mesh_term=None):
 
 
 def ground_condition(condition: str) -> list[gilda.grounder.ScoredMatch]:
+    """Ground a condition string to a standard ontology.
+
+    Parameters
+    ----------
+    condition : str
+        The condition to ground.
+
+    Returns
+    -------
+    list[gilda.grounder.ScoredMatch]
+        The grounded condition.
+    """
     matches = gilda.ground(condition)
     matches = [
         match
@@ -80,6 +134,13 @@ def ground_condition(condition: str) -> list[gilda.grounder.ScoredMatch]:
 
 
 def ground_drug(drug: str) -> list[gilda.grounder.ScoredMatch]:
+    """Ground a drug string to a standard ontology.
+
+    Parameters
+    ----------
+    drug : str
+        The drug to ground.
+    """
     matches = gilda.ground(drug)
     if matches:
         return matches[0].term
@@ -91,14 +152,14 @@ def standardize(prefix: str, identifier: str) -> tuple[str, str]:
 
     Parameters
     ----------
-    prefix :
+    prefix : str
         The prefix to standardize.
-    identifier :
+    identifier : str
         The identifier to standardize.
 
     Returns
     -------
-    :
+    tuple[str, str]
         A tuple of the standardized prefix and identifier.
     """
 
@@ -110,6 +171,27 @@ def standardize(prefix: str, identifier: str) -> tuple[str, str]:
 
 
 class Transformer:
+    """Transform ClinicalTrials.gov data into nodes and edges for a graph database.
+
+    Attributes
+    ----------
+    has_trial_cond_ns : list
+        The namespaces of conditions in trials.
+    has_trial_cond_id : list
+        The IDs of conditions in trials.
+    has_trial_nct : list
+        The NCT IDs of trials.
+    tested_in_int_ns : list
+        The namespaces of interventions tested in trials.
+    tested_in_int_id : list
+        The IDs of interventions tested in trials.
+    tested_in_nct : list
+        The NCT IDs of trials.
+    problematic_mesh_ids : list
+        The problematic MeSH IDs.
+    df : DataFrame
+        The DataFrame to transform.
+    """
 
     def __init__(self):
         self.has_trial_cond_ns = []
@@ -127,7 +209,7 @@ class Transformer:
         """Clean up values in DataFrame"""
 
         self.df["start_year"] = self.df["StartDate"].apply(_get_start_year).astype("Int64")
- 
+
         # randomized, Non-Randomized
         self.df["randomized"] = self.df["DesignAllocation"].map(
             lambda s: "true" if pd.notna(s) and s == "Randomized" else "false"
@@ -146,9 +228,12 @@ class Transformer:
             lambda s: ";".join(f"PUBMED:{pubmed_id}" for pubmed_id in s.split("|")),
             na_action="ignore",
         )
-    
+
     # def get_nodes(self):
     def get_nodes(self) -> Iterator:
+        """
+        Get nodes from the DataFrame.
+        """
         nctid_to_data = {}
         yielded_nodes = set()
         for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
@@ -180,8 +265,8 @@ class Transformer:
                         yielded_nodes.add((cond_term.db, cond_term.id))
             if not found_disease_gilda and not isna(row["ConditionMeshId"]):
                 for mesh_id, mesh_term in zip(
-                    row["ConditionMeshId"].split("|"),
-                    row["ConditionMeshTerm"].split("|")
+                        row["ConditionMeshId"].split("|"),
+                        row["ConditionMeshTerm"].split("|")
                 ):
                     correct_mesh_id = get_correct_mesh_id(mesh_id, mesh_term)
                     if not correct_mesh_id:
@@ -206,8 +291,8 @@ class Transformer:
             # use it, if there are no matches, we go by provided MeSH ID
             found_drug_gilda = False
             for int_name, int_type in zip(
-                str(row["InterventionName"]).split("|"),
-                str(row["InterventionType"]).split("|")
+                    str(row["InterventionName"]).split("|"),
+                    str(row["InterventionType"]).split("|")
             ):
                 if int_type == "Drug":
                     drug_term = ground_drug(int_name)
@@ -227,8 +312,8 @@ class Transformer:
             # If there is no Gilda grounding but there are some MeSH IDs given
             if not found_drug_gilda and not isna(row["InterventionMeshId"]):
                 for mesh_id, mesh_term in zip(
-                    row["InterventionMeshId"].split("|"),
-                    row["InterventionMeshTerm"].split("|"),
+                        row["InterventionMeshId"].split("|"),
+                        row["InterventionMeshTerm"].split("|"),
                 ):
                     correct_mesh_id = get_correct_mesh_id(mesh_id, mesh_term)
                     if not correct_mesh_id:
@@ -265,9 +350,12 @@ class Transformer:
         )
 
     def get_edges(self):
+        """
+        Get edges from the DataFrame and the transformed data.
+        """
         added = set()
         for cond_ns, cond_id, target_id in zip(
-            self.has_trial_cond_ns, self.has_trial_cond_id, self.has_trial_nct
+                self.has_trial_cond_ns, self.has_trial_cond_id, self.has_trial_nct
         ):
             if (cond_ns, cond_id, target_id) in added:
                 continue
@@ -282,7 +370,7 @@ class Transformer:
             )
         added = set()
         for int_ns, int_id, target_id in zip(
-            self.tested_in_int_ns, self.tested_in_int_id, self.tested_in_nct
+                self.tested_in_int_ns, self.tested_in_int_id, self.tested_in_nct
         ):
             if (int_ns, int_id, target_id) in added:
                 continue

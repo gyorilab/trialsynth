@@ -4,7 +4,7 @@ import logging
 import gzip
 from pathlib import Path
 import pickle
-from typing import Callable
+from typing import Callable, Iterator
 
 import pandas as pd
 from tqdm import tqdm
@@ -16,22 +16,55 @@ logger = logging.getLogger(__name__)
 
 
 class Storer:
+    """Stores processed data to disk.
 
-    def __init__(self, node_iterator: Callable, node_types: list[str], data_directory: Path):
+    Attributes
+    ----------
+    node_iterator : Callable[[], Iterator]
+        Function to generate nodes from the transformed data
+    node_types : list[str]
+        Types of nodes
+    node_types_to_paths : dict
+        Paths to save nodes
+    edges_path : Path
+        Path to save edges
+    edges_sample_path : Path
+        Path to save sample edges
+
+    Parameters
+    ----------
+    node_iterator : Callable[[], Iterator]
+        Function to generate nodes from the transformed data
+    node_types : list
+        Types of nodes
+    data_directory : Path
+        Directory to save data
+    """
+
+    def __init__(self, node_iterator: Callable[[], Iterator], node_types: list[str], data_directory: Path, sample_directory: Path):
         self.node_iterator = node_iterator
         self.node_types = node_types
         self.node_types_to_paths = {
             node_type: (
                 Path(data_directory, f"nodes_{node_type}.tsv.gz"),
                 Path(data_directory, f"nodes_{node_type}.pkl"),
-                Path(data_directory, f"nodes_{node_type}_sample.tsv")
+                Path(sample_directory, f"nodes_{node_type}_sample.tsv")
             )
             for node_type in node_types
         }
         self.edges_path = Path(data_directory, "edges.tsv.gz")
-        self.edges_sample_path = Path(data_directory, "edges_sample.tsv")
+        self.edges_sample_path = Path(sample_directory, "edges_sample.tsv")
 
     def save_data(self, data: pd.DataFrame, path: Path) -> None:
+        """Saves data to disk as a compressed TSV file.
+
+        Parameters
+        ----------
+        data : DataFrame
+            Data to save
+        path : Path
+            Path to save the data
+        """
         logger.debug(f"Saving Clinicaltrials.gov data to {path}")
         try:
             data.to_csv(path, sep="\t", index=False, compression="gzip")
@@ -40,6 +73,14 @@ class Storer:
             raise
 
     def save_node_data(self) -> None:
+        """
+        Save node data to disk as compressed TSV files.
+
+        Raises
+        ------
+        RuntimeError
+            If no nodes were generated for the graph
+        """
         nodes_by_type = defaultdict(list)
         # Get all the nodes
         nodes = tqdm(
@@ -69,6 +110,19 @@ class Storer:
         sample_path=None,
         write_mode="wt"
     ):
+        """Dump node data to a path as a compressed TSV file.
+
+        Parameters
+        ----------
+        nodes : list
+            List of nodes to dump
+        nodes_path : Path
+            Path to save the nodes
+        sample_path : Path
+            Path to save a sample of the nodes. Default: None
+        write_mode : str
+            Write mode for the file. Default: 'wt'
+        """
         logger.info(f"Dumping node data into {nodes_path}")
         if sample_path:
             logger.info(f"Dumping sample node data into {sample_path}")
@@ -102,6 +156,16 @@ class Storer:
         
     # def dump_edges(self, rels, write_mode="wt"):
     def save_edge_data(self, rels, write_mode="wt"):
+        """
+        Save edge data to disk as a compressed TSV file.
+
+        Parameters
+        ----------
+        rels : list
+            List of edges to save
+        write_mode : str
+            Write mode for the file. Default: 'wt'
+        """
         logger.info(f"Dumping edge data into {self.edges_path}...")
 
         metadata = sorted(set(key for rel in rels for key in rel.data))
@@ -139,7 +203,8 @@ class Storer:
 
 
 def norm_id(db_ns, db_id) -> str:
-    """Normalize an identifier.
+    """
+    Normalize an identifier.
 
     Parameters
     ----------
@@ -150,7 +215,7 @@ def norm_id(db_ns, db_id) -> str:
 
     Returns
     -------
-    :
+    str
         The normalized identifier.
     """
 
@@ -165,4 +230,3 @@ def norm_id(db_ns, db_id) -> str:
         if ns_embedded:
             identifiers_id = identifiers_id[len(identifiers_ns) + 1 :]
     return f"{identifiers_ns}:{identifiers_id}"
-

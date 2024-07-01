@@ -4,30 +4,13 @@ from dataclasses import dataclass
 import logging
 import os
 from pathlib import Path
+from ..config_environ import create_config_dict, get_config
 
+CONFIG_DICT = create_config_dict("clinicaltrials")
 
-LOGGING_LEVEL = os.environ.get("LOGGING_LEVEL", "INFO")
-
-PROCESSOR_NAME = os.environ.get(
-    "CLINICAL_TRIALS_DOT_GOV_PROCESSOR_NAME",
-    "clinicaltrials"
-)
-API_URL = os.environ.get(
-    "CLINICAL_TRIALS_DOT_GOV_API_URL",
-    "https://clinicaltrials.gov/api/v2/studies"
-)
-
-HOME_DIR = os.environ.get("HOME_DIRECTORY", Path.home())
-PARENT_DIR_STR = os.environ.get("BASE_DIRECTORY", ".data")
-DATA_DIR_STR = os.environ.get("DATA_DIRECTORY", "clinicaltrials")
-DATA_DIR = Path(HOME_DIR, PARENT_DIR_STR, DATA_DIR_STR)
-UNPROCESSED_FILE_PATH_STR = os.environ.get(
-    "CLINICAL_TRIALS_RAW_DATA",
-    "clinical_trials.tsv.gz"
-)
-NODES_FILE_NAME_STR = os.environ.get("NODES_FILE", "nodes.tsv.gz")
-NODES_INDRA_FILE_NAME_STR = os.environ.get("NODES_INDRA_FILE", "nodes.pkl")
-EDGES_FILE_NAME_STR = os.environ.get("EDGES_FILE", "edges.tsv.gz")
+HERE = Path(__file__).parent.resolve()
+DATA_DIR = HERE.joinpath("data")
+SAMPLE_DIR = DATA_DIR.joinpath("samples")
 
 FIELDS = [
     "NCTId",
@@ -52,7 +35,7 @@ FIELDS = [
 ]
 
 root = logging.getLogger()
-root.setLevel(LOGGING_LEVEL)
+root.setLevel(get_config('LOGGING_LEVEL', CONFIG_DICT))
 
 
 @dataclass
@@ -61,16 +44,16 @@ class Config:
     User-mutable properties of Clinicaltrials.gov data processing
     """
 
-    name = PROCESSOR_NAME
-    api_url = API_URL
+    name = get_config('PROCESSOR_NAME', CONFIG_DICT)
+    api_url = get_config('API_URL', CONFIG_DICT)
     api_parameters = {
         "fields": ",".join(FIELDS),  # actually column names, not fields
         "pageSize": 1000,
         "countTotal": "true"
     }
 
-    unprocessed_file_path = Path(DATA_DIR, UNPROCESSED_FILE_PATH_STR)
-    nodes_path = Path(DATA_DIR, NODES_FILE_NAME_STR)
-    nodes_indra_path = Path(DATA_DIR, NODES_INDRA_FILE_NAME_STR)
-    edges_path = Path(DATA_DIR, EDGES_FILE_NAME_STR)
+    unprocessed_file_path = Path(DATA_DIR, get_config('RAW_DATA', CONFIG_DICT))
+    nodes_path = Path(DATA_DIR, get_config('NODES_FILE', CONFIG_DICT))
+    nodes_indra_path = Path(DATA_DIR, get_config('NODES_INDRA_FILE', CONFIG_DICT))
+    edges_path = Path(DATA_DIR, get_config('EDGES_FILE', CONFIG_DICT))
     node_types = ["BioEntity", "ClinicalTrial"]

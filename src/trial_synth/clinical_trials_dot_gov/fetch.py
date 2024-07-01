@@ -6,6 +6,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 from tqdm import trange
+from typing import Optional
 
 from .config import FIELDS
 from .rest_api_response_models import UnflattenedTrial
@@ -17,6 +18,26 @@ logger = logging.getLogger(__name__)
 
 
 class Fetcher:
+    """Fetches Clinicaltrials.gov data from the REST API or a saved file
+
+    Attributes
+    ----------
+    raw_data : DataFrame
+        Raw data from the API or saved file
+    url : str
+        URL of the API endpoint
+    request_parameters : dict
+        Parameters to send with the API request
+    total_pages : int
+        Total number of pages of data that were fetched from the API
+
+    Parameters
+    ----------
+    url : str
+        URL of the API endpoint
+    request_parameters : dict
+        Parameters to send with the API request
+    """
 
     def __init__(self, url, request_parameters):
         self.raw_data = pd.DataFrame()
@@ -25,6 +46,15 @@ class Fetcher:
         self.total_pages = 0
 
     def get_api_data(self, url: str, request_parameters: dict) -> None:
+        """Fetches data from the Clinicaltrials.gov API
+
+        Parameters
+        ----------
+        url : str
+            URL of the API endpoint
+        request_parameters : dict
+            Parameters to send with the API request
+        """
         logger.debug(f"Fetching Clinicaltrials.gov data from {url} with parameters {request_parameters}")
 
         try:
@@ -42,7 +72,7 @@ class Fetcher:
     def read_next_page(self) -> None:
         json_data = send_request(self.url, self.request_parameters)
         studies = json_data.get("studies", [])
-        flattened_data = self.flatten_data(studies)
+        flattened_data = flatten_data(studies)
         self.raw_data = pd.concat([self.raw_data, flattened_data])
         next_page_token = json_data.get("nextPageToken")
         self.request_parameters["pageToken"] = next_page_token
@@ -51,6 +81,19 @@ class Fetcher:
 
 
 def flatten_data(data: dict) -> pd.DataFrame:
+    """Reformat API response data from hierarchical to tabular
+
+    Parameters
+    ----------
+    data : dict
+        Data from the API response
+
+    Returns
+    -------
+    DataFrame
+        Data fetched from the API in tabular format
+
+    """
     logger.debug("Reformatting API response data from hierarchical to tabular")
 
     trials = []
@@ -144,6 +187,13 @@ def flatten_data(data: dict) -> pd.DataFrame:
 
 
 def load_saved_data(path: Path) -> pd.DataFrame:
+    """Load saved Clinicaltrials.gov data from a file
+
+    Parameters
+    ----------
+    path : Path
+        Path to the saved data file
+    """
     logger.debug(f"Loading Clinicaltrials.gov data from {path}")
 
     try:
@@ -153,6 +203,20 @@ def load_saved_data(path: Path) -> pd.DataFrame:
 
 
 def send_request(url: str, params: dict) -> dict:
+    """Send a request to the Clinicaltrials.gov API and return the response as JSON
+
+    Parameters
+    ----------
+    url : str
+        URL of the API endpoint
+    params : dict
+        Parameters to send with the API request
+
+    Returns
+    -------
+    dict
+        JSON response from the API
+    """
     try:
         response = requests.get(url, params)
         return response.json()
@@ -161,7 +225,17 @@ def send_request(url: str, params: dict) -> dict:
         raise
 
 
-def join_if_not_empty(data: list, delimiter: str = "|") -> str | None:
+def join_if_not_empty(data: list, delimiter: str = "|") -> Optional[str]:
+    """Join a list of strings with a delimiter if the list is not empty
+
+    Parameters
+    ----------
+    data : list
+        List of strings to join
+    delimiter : Optional[str]
+        Delimiter to use when joining the strings. Default: "|"
+
+    """
     if all(data):
         return delimiter.join(data)
     return None
