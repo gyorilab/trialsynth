@@ -1,17 +1,13 @@
-import re
 import logging
-
-from lxml import etree
-import pandas as pd
-from tqdm import tqdm
+import re
 from typing import Optional
-from pathlib import Path
-from .config import DATA_DIR
+
 import bioregistry
 
 logger = logging.getLogger(__name__)
 
-PREFIXES = {
+ct_namespaces = {
+    # -- Clinical trial registries -- #
     "ISRCTN": "isrctn",
     "ACTRN": "anzctr",
     "ANZCTR": "anzctr",  # xxx
@@ -46,18 +42,33 @@ PREFIXES = {
     "PER": "repec",  # Clinical Trials Peruvian Registry
 }
 
+# TODO: consider having namespaces be user-mutable in the future with ini file
+
+CONDITION_NS = ["MESH", "DOID", "EFO", "HP", "GO"]
+INTERVENTION_NS = ["CHEBI", "MESH", "EFO", "HGNC"]
+
+
+def get_namespaces() -> dict:
+    """Get the namespaces for the clinical trial registries and bioentity ontologies"""
+    entity_namespaces = CONDITION_NS + INTERVENTION_NS
+
+    for ns in entity_namespaces:
+        ct_namespaces[ns] = ns.lower()
+    return ct_namespaces
+
+
+NAMESPACES = get_namespaces()
+
 
 def get_patterns() -> dict:
-    """
-    Get compiled regular expression patterns for the prefixes
-    """
+    """Get compiled regular expression patterns for the prefixes of the namespaces"""
     rv = {}
-    for k, v in PREFIXES.items():
+    for k, v in NAMESPACES.items():
         if not v:
             continue
         pattern = bioregistry.get_pattern(v)
         if not pattern:
-            tqdm.write(f"missing pattern for {v} in bioregistry")
+            logger.info(f"missing pattern for {v} in bioregistry")
             continue
         rv[k] = re.compile(pattern)
     return rv
@@ -66,30 +77,8 @@ def get_patterns() -> dict:
 PATTERNS = get_patterns()
 
 
-def findtext(trial: etree.Element, k: str) -> str:
-    """Find the text of a child element of a trial
-
-    Parameters
-    ----------
-    trial : etree.Element
-        The trial element
-
-    k : str
-        The key of the child element
-
-    Returns
-    -------
-    str
-        The text of the child element
-    """
-    v = trial.find(k)
-    if (v is not None) and (v.text is not None):
-        return trial.find(k).text.replace("<br>", "\n").strip()
-    return ""
-
-
-def makelist(s: Optional[str], delimeter: str = '.') -> list:
-    """Find a list of values from an element joined by semicolons
+def make_list(s: Optional[str], delimeter: str = ".") -> list:
+    """Create a list of values from an element joined by a dilemeter
 
     Parameters
     ----------
@@ -104,13 +93,13 @@ def makelist(s: Optional[str], delimeter: str = '.') -> list:
         The list of values
     """
 
-    if s and not pd.isna(s):
+    if s:
         s = s.removeprefix('"').removesuffix('"')
         return sorted(x for x in {x.strip() for x in s.split(delimeter)} if x)
     return []
 
 
-def make_str(s: str):
+def make_str(s: str) -> Optional[str]:
     """Return a stripped string if it is not empty
 
     Parameters
@@ -123,71 +112,37 @@ def make_str(s: str):
     str
         The string if it is not empty
     """
-    if s and not pd.isna(s):
+    if s:
+        s = s.removeprefix('"').removesuffix('"')
         return s.strip()
+    return
 
-    return ''
 
-
-def matches_pattern(s: str) -> Optional[str]:
-    """Matches a string to a pattern and returns the prefix if it matches.
+def must_override(method):
+    """Decorator to ensure that a method is implemented in a subclass
 
     Parameters
     ----------
-    s : str
-        The string to match
+    method : function
+        The method to check for implementation
 
     Returns
     -------
-    Optional[str]
-        The prefix
+    function
+        The wrapper function
 
+    Raises
+    ------
+    NotImplementedError
+        If the method is not implemented in the subclass
     """
-    for prefix, pattern in PATTERNS.items():
-        if pattern.match(s):
-            return PREFIXES[prefix]
 
+    def wrapper(*args, **kwargs):
+        cls = args[0].__class__
+        if method.__name__ in cls.__dict__:
+            raise NotImplementedError(
+                f"Class '{cls.__name__}' must override method '{method.__name__}'"
+            )
+        return method(*args, **kwargs)
 
-def transform_mappings(s: str) -> Optional[list[str]]:
-    """Transforms a string of mappings into a list of CURIEs
-
-    Parameters
-    ----------
-    s : str
-        The string of mappings
-
-    Returns
-    -------
-    Optional[list[str]]
-        The list of CURIEs
-    """
-    if pd.isna(s) or not s:
-        return None
-    curies = []
-    for x in s.split(";"):
-        x = x.strip()
-        if x.lower() in {"nil", "nil known", "none"}:
-            continue
-        prefix = matches_pattern(x)
-        if not prefix:
-            continue
-        curies.append(bioregistry.curie_to_str(prefix, x))
-    if not curies:
-        return None
-    return curies
-
-
-def ensure_output_directory_exists(path: Path) -> None:
-    """Ensures that the output directory exists
-
-    Parameters
-    ----------
-    path : Path
-        Path to the output directory
-    """
-    try:
-        logger.info(f"Ensuring directory exists: {path}")
-        path.mkdir(parents=True, exist_ok=True)
-    except Exception:
-        logger.exception(f"An error occurred trying to create {path}")
-        raise
+    return wrapper

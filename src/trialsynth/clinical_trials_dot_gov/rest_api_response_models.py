@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
 
 
-
 class SecondaryID(BaseModel):
 
     id_type: str = Field(alias="type")
@@ -28,20 +27,30 @@ class StartDateStruct(BaseModel):
 
 class StatusModule(BaseModel):
 
-    start_date_struct: StartDateStruct = Field(alias="startDateStruct", default=StartDateStruct())
+    start_date_struct: StartDateStruct = Field(
+        alias="startDateStruct", default=StartDateStruct()
+    )
     overall_status: str = Field(alias="overallStatus")
     why_stopped: str = Field(alias="whyStopped", default=None)
 
 
-class DesignInfo(BaseModel):
+class DesignMaskingInfo(BaseModel):
+    masking: str = Field(alias="masking", default=None)
 
+
+class DesignInfo(BaseModel):
+    purpose: str = Field(alias="primaryPurpose", default=None)
     allocation: str = Field(alias="allocation", default=None)
+    masking_info: DesignMaskingInfo = Field(
+        alias="maskingInfo", default=DesignMaskingInfo()
+    )
+    intervention_assignment: str = Field(alias="interventionModel", default=None)
+    observation_assignment: str = Field(alias="observationalModel", default=None)
 
 
 class DesignModule(BaseModel):
 
     study_type: str = Field(alias="studyType", default=None)
-    phases: list[str] = Field(alias="phases", default=[])
     design_info: DesignInfo = Field(alias="designInfo", default=DesignInfo())
 
 
@@ -82,25 +91,44 @@ class ConditionBrowseModule(BaseModel):
     condition_meshes: list[Mesh] = Field(alias="meshes", default=[])
 
 
+class Outcome(BaseModel):
+    measure: str = Field(alias="measure", default=None)
+    time_frame: str = Field(alias="timeframe", default=None)
+
+
+class OutcomesModule(BaseModel):
+    primary_outcome: list[Outcome] = Field(alias="primaryOutcomes", default=[])
+    secondary_outcome: list[Outcome] = Field(alias="secondaryOutcomes", default=[])
+
+
 class ProtocolSection(BaseModel):
 
     id_module: IDModule = Field(alias="identificationModule")
-    conditions_module: ConditionsModule = Field(alias="conditionsModule", default=ConditionsModule())
-    status_module: StatusModule = Field(alias="statusModule")
+    conditions_module: ConditionsModule = Field(
+        alias="conditionsModule", default=ConditionsModule()
+    )
     design_module: DesignModule = Field(alias="designModule", default=DesignModule())
-    references_module: ReferencesModule = Field(alias="referencesModule", default=ReferencesModule())
-    arms_interventions_module: ArmsInterventionsModule = Field(alias="armsInterventionsModule", default=ArmsInterventionsModule())
+    arms_interventions_module: ArmsInterventionsModule = Field(
+        alias="armsInterventionsModule", default=ArmsInterventionsModule()
+    )
+    outcomes_module: OutcomesModule = Field(
+        alias="outcomesModule", default=OutcomesModule()
+    )
 
 
 class DerivedSection(BaseModel):
 
-    condition_browse_module: ConditionBrowseModule = Field(alias="conditionBrowseModule", default=ConditionBrowseModule())
-    intervention_browse_module: InterventionBrowseModule = Field(alias="interventionBrowseModule", default=InterventionBrowseModule())
+    condition_browse_module: ConditionBrowseModule = Field(
+        alias="conditionBrowseModule", default=ConditionBrowseModule()
+    )
+    intervention_browse_module: InterventionBrowseModule = Field(
+        alias="interventionBrowseModule", default=InterventionBrowseModule()
+    )
 
 
 class UnflattenedTrial(BaseModel):
     """
-        Clinicaltrials.gov trial data from REST API response
+    Clinicaltrials.gov trial data from REST API response
     """
 
     protocol_section: ProtocolSection = Field(alias="protocolSection")

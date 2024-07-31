@@ -2,19 +2,20 @@
 name = "trialsynth"
 version = "0.1.0-alpha"
 description = "Extracts clinical trial information from sources"
-authors = ["tomooga <oga.t@northeastern.edu>", "jim-sheldon <5619539+jim-sheldon@users.noreply.github.com>"]
+authors = [
+  "tomooga <oga.t@northeastern.edu>",
+  "jim-sheldon <5619539+jim-sheldon@users.noreply.github.com>",
+]
 license = "BSD-2-Clause"
 readme = "README.md"
 
-packages = [
-    { include = "trial_synth", from = "src" },
-]
+packages = [{ include = "trialsynth", from = "src" }]
 
 classifiers = [
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
 ]
 
 [tool.poetry.dependencies]
@@ -22,12 +23,13 @@ python = ">=3.10"
 gilda = "^1.1.0"
 pandas = "^2.2.2"
 tqdm = "^4.66.2"
-indra = {git = "https://github.com/sorgerlab/indra.git"} 
+indra = { git = "https://github.com/sorgerlab/indra.git" }
 requests = "^2.31.0"
 click = "^8.1.7"
 addict = "^2.4.0"
 pydantic = "^2.7.1"
 bioregistry = "^0.11.6"
+overrides = "^7.7.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.1.1"
@@ -35,4 +37,3 @@ pytest = "^8.1.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
