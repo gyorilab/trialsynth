@@ -52,6 +52,7 @@ class DesignModule(BaseModel):
 
     study_type: str = Field(alias="studyType", default=None)
     design_info: DesignInfo = Field(alias="designInfo", default=DesignInfo())
+    phases: list[str] = Field(alias="phases", default=[])
 
 
 class Reference(BaseModel):
