@@ -236,6 +236,7 @@ class Processor:
             "secondary_outcome:OUTCOME[]",
             "secondary_ids:CURIE[]",
             "source_registry:string",
+            "phases:PHASE[]",
         ]
 
         store.save_data_as_flatfile(

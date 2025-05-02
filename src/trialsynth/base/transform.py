@@ -34,6 +34,7 @@ class Transformer:
             self.transform_secondary_outcome(trial),
             self.transform_secondary_ids(trial),
             trial.source,
+            self.transform_phases(trial.phases)
         )
 
     @staticmethod
@@ -93,6 +94,13 @@ class Transformer:
     def transform_labels(node: Node) -> str:
         """Transforms the type of trial into a string."""
         return join_list_to_str(node.labels)
+
+    @staticmethod
+    def transform_phases(phases: Iterable[str]) -> str:
+        """Transforms the phases of a trial into a string."""
+        if not list(phases):
+            return ""
+        return join_list_to_str([phase.strip() for phase in phases if phase.strip()])
 
     @staticmethod
     def transform_title(trial: Trial) -> str:
