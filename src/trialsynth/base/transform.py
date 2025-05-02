@@ -20,7 +20,7 @@ class Transformer:
         -------
         transformed_data: Tuple
             A tuple of the transformed data. In order of title, type, design, conditions, interventions, genes,
-            primary_outcome, secondary_outcome, secondary_ids.
+            primary_outcome, secondary_outcome, secondary_ids, source, phases.
 
         """
         return (
