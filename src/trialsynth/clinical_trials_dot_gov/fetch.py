@@ -120,6 +120,11 @@ class CTFetcher(Fetcher):
             if study_type:
                 trial.labels.append(study_type.strip().lower())
 
+            phases = rest_trial.protocol_section.design_module.phases
+
+            if phases:
+                trial.labels.extend([phase.strip().lower() for phase in phases])
+
             design_info = rest_trial.protocol_section.design_module.design_info
             trial.design = DesignInfo(
                 purpose=design_info.purpose,

@@ -388,6 +388,7 @@ class Trial(Node):
     ):
         super().__init__(source=source, ns=ns, ns_id=id)
         self.labels: list[str] = ["clinical_trial"]
+        self.phases: list[str] = []
 
         if labels:
             self.labels.extend(labels)
