@@ -1,4 +1,5 @@
 """Gets Clinicaltrials.gov data from REST API or saved file"""
+import datetime
 
 import requests
 from overrides import overrides
@@ -124,6 +125,17 @@ class CTFetcher(Fetcher):
 
             if phases:
                 trial.phases.extend([phase.strip().lower() for phase in phases])
+
+            # Start date, either %Y-%m-%d or %Y-%m"
+            start_date_str = (
+                rest_trial.protocol_section.status_module.start_date_struct.date
+            )
+            if start_date_str is not None:
+                any_start_date = True
+                trial.start_date = datetime.datetime.strptime(
+                    start_date_str,
+                    "%Y-%m-%d" if start_date_str.count("-") == 2 else "%Y-%m",
+                )
 
             design_info = rest_trial.protocol_section.design_module.design_info
             trial.design = DesignInfo(
