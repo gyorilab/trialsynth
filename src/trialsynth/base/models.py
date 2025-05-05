@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from typing import Optional, Union
 
 import indra.statements.agent as agent
@@ -389,6 +390,7 @@ class Trial(Node):
         super().__init__(source=source, ns=ns, ns_id=id)
         self.labels: list[str] = ["clinical_trial"]
         self.phases: list[str] = []
+        self.start_date: Optional[datetime] = None
 
         if labels:
             self.labels.extend(labels)
