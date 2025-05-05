@@ -134,7 +134,6 @@ class CTFetcher(Fetcher):
                 rest_trial.protocol_section.status_module.start_date_struct.date
             )
             if start_date_str is not None:
-                any_start_date = True
                 trial.start_date = datetime.datetime.strptime(
                     start_date_str,
                     "%Y-%m-%d" if start_date_str.count("-") == 2 else "%Y-%m",
