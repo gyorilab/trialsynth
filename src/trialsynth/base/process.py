@@ -240,7 +240,7 @@ class Processor:
             "start_year:integer",
             "start_year_anticipated:boolean",  # Fixme: get from API not by estimate
             "status:string",
-            "why_stopped:boolean"
+            "why_stopped:string",
         ]
 
         store.save_data_as_flatfile(
