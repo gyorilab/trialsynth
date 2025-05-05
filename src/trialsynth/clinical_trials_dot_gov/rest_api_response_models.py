@@ -30,7 +30,7 @@ class StatusModule(BaseModel):
     start_date_struct: StartDateStruct = Field(
         alias="startDateStruct", default=StartDateStruct()
     )
-    overall_status: str = Field(alias="overallStatus")
+    overall_status: str = Field(alias="overallStatus", default=None)
     why_stopped: str = Field(alias="whyStopped", default=None)
 
 
@@ -114,6 +114,9 @@ class ProtocolSection(BaseModel):
     )
     outcomes_module: OutcomesModule = Field(
         alias="outcomesModule", default=OutcomesModule()
+    )
+    status_module: StatusModule = Field(
+        alias="statusModule", default=StatusModule()
     )
 
 
