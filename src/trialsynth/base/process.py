@@ -237,6 +237,7 @@ class Processor:
             "secondary_ids:CURIE[]",
             "source_registry:string",
             "phases:PHASE[]",
+            "start_date:integer",
         ]
 
         store.save_data_as_flatfile(

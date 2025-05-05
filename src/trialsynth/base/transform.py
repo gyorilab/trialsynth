@@ -34,7 +34,8 @@ class Transformer:
             self.transform_secondary_outcome(trial),
             self.transform_secondary_ids(trial),
             trial.source,
-            self.transform_phases(trial.phases)
+            self.transform_phases(trial.phases),
+            trial.start_date.year if trial.start_date else "",
         )
 
     @staticmethod
