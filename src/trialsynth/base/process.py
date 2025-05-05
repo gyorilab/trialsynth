@@ -231,7 +231,7 @@ class Processor:
             "labels:LABEL[]",
             "design:DESIGN",
             "conditions:CURIE[]",
-            "interventions:CURIE[]"
+            "interventions:CURIE[]",
             "primary_outcome:OUTCOME[]",
             "secondary_outcome:OUTCOME[]",
             "secondary_ids:CURIE[]",
