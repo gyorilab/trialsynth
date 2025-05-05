@@ -114,13 +114,16 @@ class CTFetcher(Fetcher):
                 id=rest_trial.protocol_section.id_module.nct_id,
             )
 
+            # Brief Title
             trial.title = rest_trial.protocol_section.id_module.brief_title
 
+            # Study Type e.g. "Interventional", "Observational"
             study_type = rest_trial.protocol_section.design_module.study_type
 
             if study_type:
                 trial.labels.append(study_type.strip().lower())
 
+            # Phases e.g. "PHASE1", "PHASE2|PHASE3", "EARLY_PHASE_1", "NA"
             phases = rest_trial.protocol_section.design_module.phases
 
             if phases:
@@ -137,21 +140,24 @@ class CTFetcher(Fetcher):
                     "%Y-%m-%d" if start_date_str.count("-") == 2 else "%Y-%m",
                 )
 
+            # Design information
             design_info = rest_trial.protocol_section.design_module.design_info
             trial.design = DesignInfo(
-                purpose=design_info.purpose,
-                allocation=design_info.allocation,
-                masking=design_info.masking_info.masking,
+                purpose=design_info.purpose,  # E.g. "TREATMENT"
+                allocation=design_info.allocation,  # E.g. "RANDOMIZED"
+                masking=design_info.masking_info.masking,  # E.g. "NONE"
                 assignment=(
-                    design_info.intervention_assignment
+                    design_info.intervention_assignment  # E.g. "CROSSOVER"
                     if design_info.intervention_assignment
                     else design_info.observation_assignment
                 ),
             )
 
+            # Assigned conditions Mesh terms
             condition_meshes = (
                 rest_trial.derived_section.condition_browse_module.condition_meshes
             )
+            # Conditions
             conditions = (
                 rest_trial.protocol_section.conditions_module.conditions
             )
@@ -176,9 +182,11 @@ class CTFetcher(Fetcher):
                 ]
             )
 
+            # Assigned intervention text
             intervention_arms = (
                 rest_trial.protocol_section.arms_interventions_module.arms_interventions
             )
+            # Assigned intervention Mesh terms
             intervention_meshes = (
                 rest_trial.derived_section.intervention_browse_module.intervention_meshes
             )
