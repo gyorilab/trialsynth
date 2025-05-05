@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Iterable, Tuple
 
 from .models import BioEntity, Edge, Node, Trial
@@ -36,7 +37,20 @@ class Transformer:
             trial.source,
             self.transform_phases(trial.phases),
             trial.start_date.year if trial.start_date else "",
+            self.tranform_anticipated_date(trial),
+            trial.overall_status,
+            trial.why_stopped if trial.why_stopped else ""
         )
+
+    @staticmethod
+    def tranform_anticipated_date(trial: Trial) -> str:
+        if trial.start_date is not None:
+            if trial.start_date > datetime.now():
+                return "true"
+            else:
+                return "false"
+        else:
+            return "false"
 
     @staticmethod
     def transform_secondary_ids(trial: Trial) -> str:

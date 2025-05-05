@@ -391,6 +391,8 @@ class Trial(Node):
         self.labels: list[str] = ["clinical_trial"]
         self.phases: list[str] = []
         self.start_date: Optional[datetime] = None
+        self.overall_status: Optional[str] = None
+        self.why_stopped: Optional[str] = None
 
         if labels:
             self.labels.extend(labels)

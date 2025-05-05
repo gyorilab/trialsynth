@@ -139,6 +139,15 @@ class CTFetcher(Fetcher):
                     "%Y-%m-%d" if start_date_str.count("-") == 2 else "%Y-%m",
                 )
 
+            # Overall status e.g. "COMPLETED", "RECRUITING", "TERMINATED"
+            overall_status = rest_trial.protocol_section.status_module.overall_status
+            trial.overall_status = overall_status.strip().lower()
+
+            # Why stopped e.g. "REASON_FOR_TERMINATION"
+            why_stopped = rest_trial.protocol_section.status_module.why_stopped
+            if why_stopped:
+                trial.why_stopped = why_stopped.strip().lower()
+
             # Design information
             design_info = rest_trial.protocol_section.design_module.design_info
             trial.design = DesignInfo(

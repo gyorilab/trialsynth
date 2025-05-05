@@ -237,7 +237,10 @@ class Processor:
             "secondary_ids:CURIE[]",
             "source_registry:string",
             "phases:PHASE[]",
-            "start_date:integer",
+            "start_year:integer",
+            "start_year_anticipated:boolean",  # Fixme: get from API not by estimate
+            "status:string",
+            "why_stopped:boolean"
         ]
 
         store.save_data_as_flatfile(
