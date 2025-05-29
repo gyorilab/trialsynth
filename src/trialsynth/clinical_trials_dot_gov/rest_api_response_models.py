@@ -65,7 +65,7 @@ class Reference(BaseModel):
 
 class ReferencesModule(BaseModel):
 
-    references: list[Reference | dict] = Field(alias="references", default=[])
+    references: list[Reference] = Field(alias="references", default=[])
 
 
 class Intervention(BaseModel):
