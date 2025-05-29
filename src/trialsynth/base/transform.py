@@ -39,7 +39,8 @@ class Transformer:
             trial.start_date.year if trial.start_date else "",
             self.tranform_anticipated_date(trial),
             trial.overall_status,
-            trial.why_stopped if trial.why_stopped else ""
+            trial.why_stopped if trial.why_stopped else "",
+            self.transform_references(trial.references),
         )
 
     @staticmethod
@@ -51,6 +52,13 @@ class Transformer:
                 return "false"
         else:
             return "false"
+
+    @staticmethod
+    def transform_references(references: list[tuple[str, str]]) -> str:
+        """Transforms a list of references into a string."""
+        if not references:
+            return ""
+        return join_list_to_str([f"{pmid},{ref_type}" for pmid, ref_type in references])
 
     @staticmethod
     def transform_secondary_ids(trial: Trial) -> str:
@@ -90,7 +98,6 @@ class Transformer:
 
         transformed_entities = set(transformed_entities)
         return join_list_to_str(transformed_entities)
-
 
     @staticmethod
     def transform_design(trial: Trial) -> str:

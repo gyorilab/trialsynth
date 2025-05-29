@@ -241,6 +241,7 @@ class Processor:
             "start_year_anticipated:boolean",
             "status:string",
             "why_stopped:string",
+            "references:string[]",
         ]
 
         store.save_data_as_flatfile(
