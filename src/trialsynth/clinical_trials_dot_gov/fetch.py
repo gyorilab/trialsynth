@@ -133,11 +133,13 @@ class CTFetcher(Fetcher):
             start_date_str = (
                 rest_trial.protocol_section.status_module.start_date_struct.date
             )
+            date_type = rest_trial.protocol_section.status_module.start_date_struct.date_type
             if start_date_str is not None:
                 trial.start_date = datetime.datetime.strptime(
                     start_date_str,
                     "%Y-%m-%d" if start_date_str.count("-") == 2 else "%Y-%m",
                 )
+                trial.start_date_type = date_type.strip().lower() if date_type else None
 
             # Overall status e.g. "COMPLETED", "RECRUITING", "TERMINATED"
             overall_status = rest_trial.protocol_section.status_module.overall_status
