@@ -118,6 +118,9 @@ class ProtocolSection(BaseModel):
     status_module: StatusModule = Field(
         alias="statusModule", default=StatusModule()
     )
+    references_module: ReferencesModule = Field(
+        alias="referencesModule", default=ReferencesModule()
+    )
 
 
 class DerivedSection(BaseModel):
