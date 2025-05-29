@@ -244,6 +244,15 @@ class CTFetcher(Fetcher):
                 for s in secondary_info
             ]
 
+            # References
+            references = rest_trial.protocol_section.references_module.references
+            if references:
+                any_references = True
+
+            trial.references += [
+                (ref.pmid, ref.type) for ref in references if ref.pmid is not None
+            ]
+
             trial.source = self.config.registry
 
             trials.append(trial)
