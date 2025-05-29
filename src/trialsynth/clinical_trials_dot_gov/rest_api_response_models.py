@@ -56,8 +56,11 @@ class DesignModule(BaseModel):
 
 
 class Reference(BaseModel):
+    # See: https://clinicaltrials.gov/policy/protocol-definitions#references
 
-    pmid: str  # these are tagged as relevant by the author, but not necessarily about the trial
+    pmid: str = Field(alias="pmid", default=None)  # Reference PMID
+    type: str = Field(alias="type", default=None)  # One of BACKGROUND, RESULT, DERIVED
+    citation: str = Field(alias="citation", default=None)
 
 
 class ReferencesModule(BaseModel):
