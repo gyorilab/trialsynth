@@ -391,6 +391,7 @@ class Trial(Node):
         self.labels: list[str] = ["clinical_trial"]
         self.phases: list[str] = []
         self.start_date: Optional[datetime] = None
+        self.start_date_type: Optional[str] = None
         self.overall_status: Optional[str] = None
         self.why_stopped: Optional[str] = None
 
@@ -403,6 +404,7 @@ class Trial(Node):
         self.primary_outcomes: list[Union[Outcome, str]] = []
         self.secondary_outcomes: list[Union[Outcome, str]] = []
         self.secondary_ids: list[SecondaryId] = []
+        self.references: list[tuple[str, str]] = []
 
     @property
     def conditions(self) -> list[Condition]:
