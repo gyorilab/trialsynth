@@ -44,8 +44,8 @@ class Transformer:
 
     @staticmethod
     def tranform_anticipated_date(trial: Trial) -> str:
-        if trial.start_date is not None:
-            if trial.start_date > datetime.now():
+        if trial.start_date_type is not None:
+            if trial.start_date_type.lower() == "anticipated":
                 return "true"
             else:
                 return "false"

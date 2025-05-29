@@ -238,7 +238,7 @@ class Processor:
             "source_registry:string",
             "phases:PHASE[]",
             "start_year:integer",
-            "start_year_anticipated:boolean",  # Fixme: get from API not by estimate
+            "start_year_anticipated:boolean",
             "status:string",
             "why_stopped:string",
         ]
