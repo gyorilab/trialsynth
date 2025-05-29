@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Iterable, Tuple
 
 from .models import BioEntity, Edge, Node, Trial
