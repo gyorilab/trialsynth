@@ -108,7 +108,7 @@ class CTFetcher(Fetcher):
 
         for study in data:
             rest_trial = UnflattenedTrial(**study)
-            
+
             trial = Trial(
                 ns="clinicaltrials",
                 id=rest_trial.protocol_section.id_module.nct_id,
