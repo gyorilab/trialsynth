@@ -174,14 +174,37 @@ class Grounder:
                 annotations = self.annotator(entity.text)
                 for annotation in annotations:
                     yield from self._yield_entity(entity, annotation.matches[0])
-                    
 
 
 class ConditionGrounder(Grounder):
-    def __init__(self):
-        super().__init__(namespaces=CONDITION_NS, restrict_mesh_prefix=['C', 'F'], annotator=GildaAnnotator())
+    def __init__(
+        self,
+        namespaces: Optional[list[str]] = None,
+        annotator: Callable[[str], list[Tuple[Annotation]]] = None
+    ):
+        if namespaces is None:
+            namespaces = CONDITION_NS
+        if annotator is None:
+            annotator = GildaAnnotator(namespaces=namespaces)
+        super().__init__(
+            namespaces=namespaces,
+            restrict_mesh_prefix=['C', 'F'],
+            annotator=annotator
+        )
 
 
 class InterventionGrounder(Grounder):
-    def __init__(self):
-        super().__init__(namespaces=INTERVENTION_NS, restrict_mesh_prefix=['D', 'E'], annotator=GildaAnnotator())
+    def __init__(
+        self,
+        namespaces: Optional[list[str]] = None,
+        annotator: Callable[[str], list[Tuple[Annotation]]] = None
+    ):
+        if namespaces is None:
+            namespaces = INTERVENTION_NS
+        if annotator is None:
+            annotator = GildaAnnotator(namespaces=namespaces)
+        super().__init__(
+            namespaces=namespaces,
+            restrict_mesh_prefix=['D', 'E'],
+            annotator=annotator
+        )
