@@ -293,54 +293,6 @@ class Intervention(BioEntity):
             self.labels.extend(labels)
 
 
-class BioEntity(Node):
-    """Holds information about a biological entity
-
-    Attributes
-    ----------
-    ns: str
-        The namespace of the bioentity
-    id: str
-        The ID of the bioentity
-    source: Optional[str]
-        The source registry of the bioentity
-    term: str
-        The text term of the bioentity from the given namespace
-    origin: Optional[str]
-        The trial CURIE that the bioentity is associated with
-
-    Parameters
-    ----------
-    term: str
-        The text term of the bioentity from the given namespace
-    labels: list[str]
-        The labels of the bioentity
-    origin: str
-        The trial CURIE that the bioentity is associated with
-    source: Optional[str]
-        The source registry of the bioentity.
-    ns: Optional[str]
-        The namespace of the bioentity (default: None).
-    id: Optional[str]
-        The ID of the bioentity (default: None).
-    """
-
-    def __init__(
-        self,
-        term: str,
-        labels: list[str],
-        origin: str,
-        source: str,
-        ns: Optional[str] = None,
-        id: Optional[str] = None,
-    ):
-        super().__init__(ns=ns, id=id, source=source)
-        self.labels = labels
-        self.term: str = term
-        self.origin: str = origin
-        self.source: str = source
-
-
 class Edge:
     """Edge between a trial and a bioentity
 
