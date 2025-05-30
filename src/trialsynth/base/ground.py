@@ -103,11 +103,15 @@ class Grounder:
         *,
         namespaces: Optional[list[str]] = None,
         restrict_mesh_prefix: list[str] = None,
-        annotator: Callable[[str], list[Tuple[Annotation]]] = Annotator(),
+        annotator: AnnotatorSignature = GildaAnnotator(),
+        grounder_func: Optional[GrounderSignature] = None,
     ):
         self.namespaces: Optional[list[str]] = namespaces
         self.restrict_mesh_prefix = restrict_mesh_prefix
         self.annotator = annotator
+        if grounder_func is None:
+            grounder_func = gilda.ground
+        self.grounder_func = grounder_func
 
     @must_override
     def preprocess(self, entity: BioEntity) -> BioEntity:
@@ -171,23 +175,28 @@ class Grounder:
     ) -> Iterator[BioEntity]:
         """Ground a BioEntity to a CURIE."""
         entity = self.preprocess(entity)
+        # Do special handling for MESH entities
         if entity.ns and entity.ns.upper() == "MESH" and entity.ns_id:
             mesh_name = mesh_client.get_mesh_name(entity.ns_id, offline=True)
             if mesh_name:
                 entity.grounded_term = mesh_name
                 yield entity
             else:
-                matches = gilda.ground(entity.text, namespaces=["MESH"])
+                matches = self.grounder_func(entity.text, namespaces=["MESH"])
                 if matches:
                     yield from self._yield_entity(entity, matches[0])
+        # If the entity already has a namespace and ID, we assume it's already grounded
+        elif entity.ns and entity.ns_id:
+            yield entity
+        # Otherwise, we ground the entity using Gilda
         else:
-            matches = gilda.ground(
+            matches = self.grounder_func(
                 entity.text, namespaces=self.namespaces, context=context
             )
             if matches:
                 yield from self._yield_entity(entity, matches[0])
             else:
-                annotations = self.annotator(entity.text)
+                annotations = self.annotator(entity.text, context=context)
                 for annotation in annotations:
                     yield from self._yield_entity(entity, annotation.matches[0])
 
