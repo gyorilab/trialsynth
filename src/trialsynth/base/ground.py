@@ -124,13 +124,13 @@ class Grounder:
         self, entity: BioEntity, context: Optional[str] = None
     ) -> Iterator[BioEntity]:
         return self.ground(entity, context)
-    
+
     def _create_grounded_entity(
-        self, entity: BioEntity, *, mesh_id: str, norm_text: str
+        self, entity: BioEntity, *, db_ns, db_id: str, norm_text: str
     ) -> BioEntity:
         grounded_entity = copy.deepcopy(entity)
-        grounded_entity.ns = 'MESH'
-        grounded_entity.ns_id = mesh_id
+        grounded_entity.ns = db_ns
+        grounded_entity.ns_id = db_id
         grounded_entity.grounded_term = norm_text
         return grounded_entity
 
