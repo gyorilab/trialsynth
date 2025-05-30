@@ -145,17 +145,26 @@ class Grounder:
         self, entity: BioEntity, match: ScoredMatch
     ) -> Iterator[BioEntity]:
         groundings_dict = dict(match.get_groundings())
+        # Todo: check if this disrupts other groundings from e.g. vo
         mesh_id = groundings_dict.get('MESH')
-        
+
         if mesh_id:
             if self.restrict_mesh_prefix and any(mesh_client.has_tree_prefix(mesh_id, prefix) for prefix in self.restrict_mesh_prefix):
                 yield self._create_grounded_entity(
-                    entity, mesh_id=mesh_id, norm_text=match.term.entry_name
+                    entity, db_ns="MESH", db_id=mesh_id, norm_text=match.term.entry_name
                 )
             if not self.restrict_mesh_prefix:
                 yield self._create_grounded_entity(
-                    entity, mesh_id=mesh_id, norm_text=match.term.entry_name
+                    entity, db_ns="MESH", db_id=mesh_id, norm_text=match.term.entry_name
                 )
+        else:
+            # If no MESH ID is found, we yield the original entity with the match
+            yield self._create_grounded_entity(
+                entity,
+                db_ns=match.term.db,
+                db_id=match.term.id,
+                norm_text=match.term.entry_name,
+            )
 
     def ground(
         self, entity: BioEntity, context: Optional[str] = None
