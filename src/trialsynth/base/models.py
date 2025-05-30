@@ -208,7 +208,7 @@ class BioEntity(Node):
         self.labels = labels
         self.text: str = text
         self.origin: str = origin
-        self.grounded_term = grounded_term
+        self.grounded_term: str = grounded_term
 
 
 class Condition(BioEntity):
