@@ -31,9 +31,17 @@ class Annotator:
     def __init__(
         self,
         *,
-        namespaces: Optional[list[str]] = ["MESH"],
+        namespaces: Optional[list[str]] = None,
     ):
+        """Base class for annotators that annotate text with named entities.
 
+        Parameters
+        ----------
+        namespaces : Optional[list[str]]
+            A list of namespaces to consider for annotation. If None, defaults to ["MESH"].
+        """
+        if namespaces is None:
+            namespaces = ["MESH"]
         self.namespaces = namespaces
 
     def __call__(self, text: str, *, context: str = None) -> list[Annotation]:
