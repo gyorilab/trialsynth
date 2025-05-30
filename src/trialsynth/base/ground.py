@@ -27,6 +27,13 @@ from scispacy.linking import EntityLinker
 logger = logging.getLogger(__name__)
 
 
+GrounderSignature = Callable[
+    [str, Optional[str], Optional[list[str]], Optional[list[str]]],
+    list[ScoredMatch]
+]
+AnnotatorSignature = Callable[[str, Optional[str]], list[Annotation]]
+
+
 class Annotator:
     def __init__(
         self,
