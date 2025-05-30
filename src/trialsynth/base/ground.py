@@ -205,7 +205,8 @@ class ConditionGrounder(Grounder):
     def __init__(
         self,
         namespaces: Optional[list[str]] = None,
-        annotator: Callable[[str], list[Tuple[Annotation]]] = None
+        annotator: Optional[AnnotatorSignature] = None,
+        grounder_func: Optional[GrounderSignature] = None,
     ):
         if namespaces is None:
             namespaces = CONDITION_NS
@@ -214,7 +215,8 @@ class ConditionGrounder(Grounder):
         super().__init__(
             namespaces=namespaces,
             restrict_mesh_prefix=['C', 'F'],
-            annotator=annotator
+            annotator=annotator,
+            grounder_func=grounder_func,
         )
 
 
@@ -222,7 +224,8 @@ class InterventionGrounder(Grounder):
     def __init__(
         self,
         namespaces: Optional[list[str]] = None,
-        annotator: Callable[[str], list[Tuple[Annotation]]] = None
+        annotator: Optional[AnnotatorSignature] = None,
+        grounder_func: Optional[GrounderSignature] = None,
     ):
         if namespaces is None:
             namespaces = INTERVENTION_NS
@@ -231,5 +234,6 @@ class InterventionGrounder(Grounder):
         super().__init__(
             namespaces=namespaces,
             restrict_mesh_prefix=['D', 'E'],
-            annotator=annotator
+            annotator=annotator,
+            grounder_func=grounder_func,
         )
