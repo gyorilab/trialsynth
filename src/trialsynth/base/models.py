@@ -180,7 +180,7 @@ class BioEntity(Node):
 
     Parameters
     ----------
-    term: str
+    text: str
         The text term of the bioentity from the given namespace
     labels: list[str]
         The labels of the bioentity
@@ -217,7 +217,7 @@ class Condition(BioEntity):
 
     Parameters
     ----------
-    term: str
+    text: str
         The text term of the bioentity from the given namespace
     labels: list[str]
         The labels of the bioentity
@@ -246,6 +246,39 @@ class Condition(BioEntity):
 
 
 class Intervention(BioEntity):
+    """
+    Represents an intervention in a clinical trial.
+
+    Attributes
+    ----------
+    text : str
+        The text term of the intervention.
+    origin : str
+        The trial CURIE that the intervention is associated with.
+    source : str
+        The source registry of the intervention.
+    labels : list[str], optional
+        Additional labels for the intervention (default: ['intervention']).
+    ns : str, optional
+        The namespace of the intervention (default: None).
+    id : str, optional
+        The ID of the intervention (default: None).
+
+    Parameters
+    ----------
+    text : str
+        The text term of the intervention.
+    origin : str
+        The trial CURIE that the intervention is associated with.
+    source : str
+        The source registry of the intervention.
+    labels : list[str], optional
+        Additional labels for the intervention (default: None).
+    ns : str, optional
+        The namespace of the intervention (default: None).
+    id : str, optional
+        The ID of the intervention (default: None).
+    """
     def __init__(
         self,
         text: str,
