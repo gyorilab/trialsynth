@@ -58,9 +58,11 @@ class Annotator:
     def annotate(self, text: str, *, context: str = None) -> list[Annotation]:
         pass
 
+
 class GildaAnnotator(Annotator):
     def annotate(self, text: str, *, context: str = None):
         return gilda.annotate(text=text, context_text=context, namespaces=self.namespaces)
+
 
 class SciSpacyAnnotator(Annotator):
     def __init__(self, *, model: str, namespaces: Optional[list[str]] = None):
@@ -84,6 +86,7 @@ class SciSpacyAnnotator(Annotator):
                 )
             return annotations
 
+
 class Grounder:
     """A callable class that grounds a BioEntity to a database identifier.
 
@@ -91,11 +94,25 @@ class Grounder:
     ----------
     namespaces : Optional[list[str]]
         A list of namespaces to consider for grounding (default: None).
+    restrict_mesh_prefix : list[str], optional
+        A list of MESH tree prefixes to restrict grounding to (default: None).
+    annotator : Callable[[str, Optional[str]], list[Tuple[Annotation]]], optional
+        A callable that takes a string and returns a list of annotations
+        (default: GildaAnnotator).
+    grounder_func : Optional[GrounderSignature], optional
+        A callable that takes a string and returns a list of ScoredMatches.
+        If None, defaults to `gilda.ground` (default: None).
 
     Attributes
     ----------
     namespaces : Optional[list[str]]
         A list of namespaces to consider for grounding.
+    restrict_mesh_prefix : list[str]
+        A list of MESH tree prefixes to restrict grounding to.
+    annotator : Callable[[str, Optional[str]], list[Annotation]]
+        A callable that annotates text with named entities.
+    grounder_func : GrounderSignature
+        A callable that grounds text to named entities.
     """
 
     def __init__(
