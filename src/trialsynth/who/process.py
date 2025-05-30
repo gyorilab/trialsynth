@@ -16,10 +16,8 @@ class WhoProcessor(Processor):
             fetcher=WhoFetcher(config),
             transformer=WhoTransformer(),
             validator=WhoValidator(),
-            grounders=(
-                WhoConditionGrounder(),
-                WhoInterventionGrounder(),
-            ),
+            condition_grounder=WhoConditionGrounder(),
+            intervention_grounder=WhoInterventionGrounder(),
             reload_api_data=reload_api_data,
             store_samples=store_samples,
             validate=validate,
