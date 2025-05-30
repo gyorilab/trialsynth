@@ -148,6 +148,11 @@ class Node:
 
     @property
     def curie(self) -> str:
+        if not self.ns or not self.ns_id:
+            logger.warning(
+                f"{self} does not have a namespace or ID to produce a CURIE with."
+            )
+            return ""
         return curie_to_str(self.ns.lower(), self.ns_id)
 
     @curie.setter
