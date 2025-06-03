@@ -142,9 +142,9 @@ class Processor:
         self.store_samples: bool = store_samples
         self.validate: bool = validate
 
-    def run(self):
+    def run(self, max_pages=None):
         """Processes registry data into a graph structure."""
-        self.fetcher.get_api_data(reload=self.reload_api_data)
+        self.fetcher.get_api_data(reload=self.reload_api_data, max_pages=max_pages)
         self.trials = self.fetcher.raw_data
         #  ground and process bioentities for storing
         self.get_bioentities()

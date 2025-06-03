@@ -52,7 +52,7 @@ class CTFetcher(Fetcher):
         self.total_pages = 0
 
     @overrides
-    def get_api_data(self, reload: bool = False, *kwargs) -> None:
+    def get_api_data(self, reload: bool = False, max_pages=None, *kwargs) -> None:
         trial_path = self.config.raw_data_path
         if trial_path.is_file() and not reload:
             self.load_saved_data()
@@ -63,11 +63,11 @@ class CTFetcher(Fetcher):
         try:
             self._read_next_page()
 
-            pages = self.total_pages
+            pages = self.total_pages if max_pages is None else max_pages
             page_size = self.api_parameters.get("pageSize")
             with tqdm(
                 desc="Downloading ClinicalTrials.gov trials",
-                total=int(pages * page_size),
+                total=int(pages * page_size) if max_pages is None else max_pages * page_size,
                 unit="trial",
                 unit_scale=True,
             ) as pbar:
