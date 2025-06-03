@@ -1,5 +1,6 @@
 """Gets Clinicaltrials.gov data from REST API or saved file"""
 import datetime
+from time import sleep
 
 import requests
 from overrides import overrides
@@ -81,14 +82,24 @@ class CTFetcher(Fetcher):
 
         self.save_raw_data()
 
-    def _read_next_page(self):
+    def _read_next_page(self, retries: int = 3) -> None:
 
         # TODO: timeout should be a config var
         timeout = 300
-        try: 
+        try:
             response = requests.get(self.url, self.api_parameters, timeout=timeout)
-        except TimeoutError:
-            logger.info(f'Connection timed-out after {timeout}s. To avoid this, either set the timeout max higher, or establish a better internet connection.')
+        except requests.exceptions.Timeout:
+            if retries > 0:
+                logger.warning(
+                    f'Retrying request to {self.url} with params {self.api_parameters}'
+                    f'due to timeout. Retries left: {retries - 1}'
+                )
+                sleep(5)  # Wait a bit before retrying
+                self._read_next_page(retries - 1)
+                return
+            logger.info(f'Connection timed-out after {timeout}s. To avoid this, '
+                        f'either set the timeout max higher, or establish a '
+                        f'better internet connection.')
             raise
         response.raise_for_status()
         json_data = response.json()
