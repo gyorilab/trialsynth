@@ -102,6 +102,9 @@ class Grounder:
     grounder_func : Optional[GrounderSignature], optional
         A callable that takes a string and returns a list of ScoredMatches.
         If None, defaults to `gilda.ground` (default: None).
+    mesh_prefix : Optional[str], optional. Defaults to "MESH".
+        The prefix to use for MESH grounding. If None, defaults to "MESH". Use
+        this to specify the capitalization of the MESH prefix for grounding.
 
     Attributes
     ----------
@@ -113,6 +116,10 @@ class Grounder:
         A callable that annotates text with named entities.
     grounder_func : GrounderSignature
         A callable that grounds text to named entities.
+    mesh_prefix : str
+        The prefix to use for MESH grounding. Should match the capitalization
+        used in by the grounding function, typically this would be "MESH" or
+        "mesh".
     """
 
     def __init__(
@@ -122,6 +129,7 @@ class Grounder:
         restrict_mesh_prefix: list[str] = None,
         annotator: AnnotatorSignature = GildaAnnotator(),
         grounder_func: Optional[GrounderSignature] = None,
+        mesh_prefix: Optional[str] = "MESH"
     ):
         self.namespaces: Optional[list[str]] = namespaces
         self.restrict_mesh_prefix = restrict_mesh_prefix
@@ -129,6 +137,7 @@ class Grounder:
         if grounder_func is None:
             grounder_func = gilda.ground
         self.grounder_func = grounder_func
+        self.mesh_prefix = mesh_prefix
 
     @must_override
     def preprocess(self, entity: BioEntity) -> BioEntity:
@@ -166,17 +175,16 @@ class Grounder:
         self, entity: BioEntity, match: ScoredMatch
     ) -> Iterator[BioEntity]:
         groundings_dict = dict(match.get_groundings())
-        # Todo: check if this disrupts other groundings from e.g. vo
-        mesh_id = groundings_dict.get('MESH')
+        mesh_id = groundings_dict.get(self.mesh_prefix)
 
         if mesh_id:
             if self.restrict_mesh_prefix and any(mesh_client.has_tree_prefix(mesh_id, prefix) for prefix in self.restrict_mesh_prefix):
                 yield self._create_grounded_entity(
-                    entity, db_ns="MESH", db_id=mesh_id, norm_text=match.term.entry_name
+                    entity, db_ns=self.mesh_prefix, db_id=mesh_id, norm_text=match.term.entry_name
                 )
             if not self.restrict_mesh_prefix:
                 yield self._create_grounded_entity(
-                    entity, db_ns="MESH", db_id=mesh_id, norm_text=match.term.entry_name
+                    entity, db_ns=self.mesh_prefix, db_id=mesh_id, norm_text=match.term.entry_name
                 )
         else:
             # If no MESH ID is found, we yield the original entity with the match
@@ -193,13 +201,13 @@ class Grounder:
         """Ground a BioEntity to a CURIE."""
         entity = self.preprocess(entity)
         # Do special handling for MESH entities
-        if entity.ns and entity.ns.upper() == "MESH" and entity.ns_id:
+        if entity.ns and entity.ns == self.mesh_prefix and entity.ns_id:
             mesh_name = mesh_client.get_mesh_name(entity.ns_id, offline=True)
             if mesh_name:
                 entity.grounded_term = mesh_name
                 yield entity
             else:
-                matches = self.grounder_func(entity.text, namespaces=["MESH"])
+                matches = self.grounder_func(entity.text, namespaces=[self.mesh_prefix])
                 if matches:
                     yield from self._yield_entity(entity, matches[0])
         # If the entity already has a namespace and ID, we assume it's already grounded
@@ -224,6 +232,7 @@ class ConditionGrounder(Grounder):
         namespaces: Optional[list[str]] = None,
         annotator: Optional[AnnotatorSignature] = None,
         grounder_func: Optional[GrounderSignature] = None,
+        mesh_prefix: Optional[str] = "MESH"
     ):
         if namespaces is None:
             namespaces = CONDITION_NS
@@ -234,6 +243,7 @@ class ConditionGrounder(Grounder):
             restrict_mesh_prefix=['C', 'F'],
             annotator=annotator,
             grounder_func=grounder_func,
+            mesh_prefix=mesh_prefix
         )
 
 
@@ -243,6 +253,7 @@ class InterventionGrounder(Grounder):
         namespaces: Optional[list[str]] = None,
         annotator: Optional[AnnotatorSignature] = None,
         grounder_func: Optional[GrounderSignature] = None,
+        mesh_prefix: Optional[str] = "MESH"
     ):
         if namespaces is None:
             namespaces = INTERVENTION_NS
@@ -253,4 +264,5 @@ class InterventionGrounder(Grounder):
             restrict_mesh_prefix=['D', 'E'],
             annotator=annotator,
             grounder_func=grounder_func,
+            mesh_prefix=mesh_prefix
         )
