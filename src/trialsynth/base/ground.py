@@ -39,6 +39,7 @@ class Annotator:
         self,
         *,
         namespaces: Optional[list[str]] = None,
+        mesh_prefix: Optional[str] = "MESH"
     ):
         """Base class for annotators that annotate text with named entities.
 
@@ -48,7 +49,7 @@ class Annotator:
             A list of namespaces to consider for annotation. If None, defaults to ["MESH"].
         """
         if namespaces is None:
-            namespaces = ["MESH"]
+            namespaces = [mesh_prefix]
         self.namespaces = namespaces
 
     def __call__(self, text: str, *, context: str = None) -> list[Annotation]:
