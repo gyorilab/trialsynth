@@ -1,4 +1,6 @@
 """Gets Clinicaltrials.gov data from REST API or saved file"""
+import datetime
+from time import sleep
 
 import requests
 from overrides import overrides
@@ -50,7 +52,7 @@ class CTFetcher(Fetcher):
         self.total_pages = 0
 
     @overrides
-    def get_api_data(self, reload: bool = False, *kwargs) -> None:
+    def get_api_data(self, reload: bool = False, max_pages=None, *kwargs) -> None:
         trial_path = self.config.raw_data_path
         if trial_path.is_file() and not reload:
             self.load_saved_data()
@@ -61,11 +63,11 @@ class CTFetcher(Fetcher):
         try:
             self._read_next_page()
 
-            pages = self.total_pages
+            pages = self.total_pages if max_pages is None else max_pages
             page_size = self.api_parameters.get("pageSize")
             with tqdm(
                 desc="Downloading ClinicalTrials.gov trials",
-                total=int(pages * page_size),
+                total=int(pages * page_size) if max_pages is None else max_pages * page_size,
                 unit="trial",
                 unit_scale=True,
             ) as pbar:
@@ -80,14 +82,24 @@ class CTFetcher(Fetcher):
 
         self.save_raw_data()
 
-    def _read_next_page(self):
+    def _read_next_page(self, retries: int = 3) -> None:
 
         # TODO: timeout should be a config var
         timeout = 300
-        try: 
+        try:
             response = requests.get(self.url, self.api_parameters, timeout=timeout)
-        except TimeoutError:
-            logger.info(f'Connection timed-out after {timeout}s. To avoid this, either set the timeout max higher, or establish a better internet connection.')
+        except requests.exceptions.Timeout:
+            if retries > 0:
+                logger.warning(
+                    f'Retrying request to {self.url} with params {self.api_parameters}'
+                    f'due to timeout. Retries left: {retries - 1}'
+                )
+                sleep(5)  # Wait a bit before retrying
+                self._read_next_page(retries - 1)
+                return
+            logger.info(f'Connection timed-out after {timeout}s. To avoid this, '
+                        f'either set the timeout max higher, or establish a '
+                        f'better internet connection.')
             raise
         response.raise_for_status()
         json_data = response.json()
@@ -107,34 +119,66 @@ class CTFetcher(Fetcher):
 
         for study in data:
             rest_trial = UnflattenedTrial(**study)
-            
+
             trial = Trial(
                 ns="clinicaltrials",
                 id=rest_trial.protocol_section.id_module.nct_id,
             )
 
+            # Brief Title
             trial.title = rest_trial.protocol_section.id_module.brief_title
 
+            # Study Type e.g. "Interventional", "Observational"
             study_type = rest_trial.protocol_section.design_module.study_type
 
             if study_type:
                 trial.labels.append(study_type.strip().lower())
 
+            # Phases e.g. "PHASE1", "PHASE2|PHASE3", "EARLY_PHASE_1", "NA"
+            phases = rest_trial.protocol_section.design_module.phases
+
+            if phases:
+                trial.phases.extend([phase.strip().lower() for phase in phases])
+
+            # Start date, either %Y-%m-%d or %Y-%m"
+            start_date_str = (
+                rest_trial.protocol_section.status_module.start_date_struct.date
+            )
+            date_type = rest_trial.protocol_section.status_module.start_date_struct.date_type
+            if start_date_str is not None:
+                trial.start_date = datetime.datetime.strptime(
+                    start_date_str,
+                    "%Y-%m-%d" if start_date_str.count("-") == 2 else "%Y-%m",
+                )
+                trial.start_date_type = date_type.strip().lower() if date_type else None
+
+            # Overall status e.g. "COMPLETED", "RECRUITING", "TERMINATED"
+            overall_status = rest_trial.protocol_section.status_module.overall_status
+            trial.overall_status = overall_status.strip().lower()
+
+            # Why stopped e.g. "REASON_FOR_TERMINATION"
+            why_stopped = rest_trial.protocol_section.status_module.why_stopped
+            if why_stopped:
+                trial.why_stopped = why_stopped.strip().lower()
+
+            # Design information
             design_info = rest_trial.protocol_section.design_module.design_info
             trial.design = DesignInfo(
-                purpose=design_info.purpose,
-                allocation=design_info.allocation,
-                masking=design_info.masking_info.masking,
+                purpose=design_info.purpose,  # E.g. "TREATMENT"
+                allocation=design_info.allocation,  # E.g. "RANDOMIZED"
+                masking=design_info.masking_info.masking,  # E.g. "NONE"
                 assignment=(
-                    design_info.intervention_assignment
+                    design_info.intervention_assignment  # E.g. "CROSSOVER"
                     if design_info.intervention_assignment
                     else design_info.observation_assignment
                 ),
             )
 
+            # Assigned conditions Mesh terms
             condition_meshes = (
                 rest_trial.derived_section.condition_browse_module.condition_meshes
             )
+            # Conditions
             conditions = (
                 rest_trial.protocol_section.conditions_module.conditions
             )
@@ -159,9 +203,11 @@ class CTFetcher(Fetcher):
                 ]
             )
 
+            # Assigned intervention text
             intervention_arms = (
                 rest_trial.protocol_section.arms_interventions_module.arms_interventions
             )
+            # Assigned intervention Mesh terms
             intervention_meshes = (
                 rest_trial.derived_section.intervention_browse_module.intervention_meshes
             )
@@ -209,6 +255,15 @@ class CTFetcher(Fetcher):
             trial.secondary_ids = [
                 SecondaryId(ns=s.id_type, id=s.secondary_id)
                 for s in secondary_info
+            ]
+
+            # References
+            references = rest_trial.protocol_section.references_module.references
+            if references:
+                any_references = True
+
+            trial.references += [
+                (ref.pmid, ref.type) for ref in references if ref.pmid is not None
             ]
 
             trial.source = self.config.registry

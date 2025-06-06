@@ -30,7 +30,7 @@ class StatusModule(BaseModel):
     start_date_struct: StartDateStruct = Field(
         alias="startDateStruct", default=StartDateStruct()
     )
-    overall_status: str = Field(alias="overallStatus")
+    overall_status: str = Field(alias="overallStatus", default=None)
     why_stopped: str = Field(alias="whyStopped", default=None)
 
 
@@ -52,16 +52,20 @@ class DesignModule(BaseModel):
 
     study_type: str = Field(alias="studyType", default=None)
     design_info: DesignInfo = Field(alias="designInfo", default=DesignInfo())
+    phases: list[str] = Field(alias="phases", default=[])
 
 
 class Reference(BaseModel):
+    # See: https://clinicaltrials.gov/policy/protocol-definitions#references
 
-    pmid: str  # these are tagged as relevant by the author, but not necessarily about the trial
+    pmid: str = Field(alias="pmid", default=None)  # Reference PMID
+    type: str = Field(alias="type", default=None)  # One of BACKGROUND, RESULT, DERIVED
+    citation: str = Field(alias="citation", default=None)
 
 
 class ReferencesModule(BaseModel):
 
-    references: list[Reference | dict] = Field(alias="references", default=[])
+    references: list[Reference] = Field(alias="references", default=[])
 
 
 class Intervention(BaseModel):
@@ -113,6 +117,12 @@ class ProtocolSection(BaseModel):
     )
     outcomes_module: OutcomesModule = Field(
         alias="outcomesModule", default=OutcomesModule()
+    )
+    status_module: StatusModule = Field(
+        alias="statusModule", default=StatusModule()
+    )
+    references_module: ReferencesModule = Field(
+        alias="referencesModule", default=ReferencesModule()
     )
 
 

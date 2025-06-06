@@ -10,7 +10,7 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 from . import store
 from .config import Config
 from .fetch import Fetcher
-from .ground import ConditionGrounder, InterventionGrounder
+from ..base.ground import Grounder
 from .models import Condition, Intervention, Edge, Trial
 from .transform import Transformer
 from .validate import Validator
@@ -112,7 +112,8 @@ class Processor:
         config: Config,
         fetcher: Fetcher,
         transformer: Transformer,
-        grounders: Tuple[ConditionGrounder, InterventionGrounder],
+        condition_grounder: Grounder,
+        intervention_grounder: Grounder,
         validator: Validator,
         reload_api_data: bool = False,
         store_samples: bool = False,
@@ -129,7 +130,9 @@ class Processor:
 
         self.curie_to_trial: Dict[str, Trial] = {}
 
-        self.grounders: Tuple[ConditionGrounder, InterventionGrounder] = grounders
+        # Grounders for conditions and interventions
+        self.condition_grounder: Grounder = condition_grounder
+        self.intervention_grounder: Grounder = intervention_grounder
 
         self.entities: dict[type, list] = {}
 
@@ -139,9 +142,9 @@ class Processor:
         self.store_samples: bool = store_samples
         self.validate: bool = validate
 
-    def run(self):
+    def run(self, max_pages=None):
         """Processes registry data into a graph structure."""
-        self.fetcher.get_api_data(reload=self.reload_api_data)
+        self.fetcher.get_api_data(reload=self.reload_api_data, max_pages=max_pages)
         self.trials = self.fetcher.raw_data
         #  ground and process bioentities for storing
         self.get_bioentities()
@@ -175,13 +178,18 @@ class Processor:
 
     def process_bioentities(self):
         """Processes bioentities by grounding them."""
-        logger.info("Warming up grounder...")
-        self.grounders[0].ground("stuff")
+        logger.info("Warming up grounders...")
+        self.condition_grounder.ground("stuff")
+        self.intervention_grounder.ground("stuff")
         logger.info("Done.")
 
 
-        for type, entities, grounder in zip(self.entities.keys(), self.entities.values(), self.grounders):
-            entity_type = type.__name__.lower()
+        for ent_type, entities, grounder in zip(
+            self.entities.keys(),
+            self.entities.values(),
+            [self.condition_grounder, self.intervention_grounder]
+        ):
+            entity_type = ent_type.__name__.lower()
             entity_iter = tqdm(entities, desc=f'Grounding {entity_type}s', unit=entity_type, unit_scale=True)
 
             for entity in entity_iter:
@@ -231,11 +239,17 @@ class Processor:
             "labels:LABEL[]",
             "design:DESIGN",
             "conditions:CURIE[]",
-            "interventions:CURIE[]"
+            "interventions:CURIE[]",
             "primary_outcome:OUTCOME[]",
             "secondary_outcome:OUTCOME[]",
             "secondary_ids:CURIE[]",
             "source_registry:string",
+            "phases:PHASE[]",
+            "start_year:integer",
+            "start_year_anticipated:boolean",
+            "status:string",
+            "why_stopped:string",
+            "references:string[]",
         ]
 
         store.save_data_as_flatfile(

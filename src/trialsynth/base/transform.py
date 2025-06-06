@@ -20,7 +20,7 @@ class Transformer:
         -------
         transformed_data: Tuple
             A tuple of the transformed data. In order of title, type, design, conditions, interventions, genes,
-            primary_outcome, secondary_outcome, secondary_ids.
+            primary_outcome, secondary_outcome, secondary_ids, source, phases.
 
         """
         return (
@@ -34,7 +34,30 @@ class Transformer:
             self.transform_secondary_outcome(trial),
             self.transform_secondary_ids(trial),
             trial.source,
+            self.transform_phases(trial.phases),
+            trial.start_date.year if trial.start_date else "",
+            self.tranform_anticipated_date(trial),
+            trial.overall_status,
+            trial.why_stopped if trial.why_stopped else "",
+            self.transform_references(trial.references),
         )
+
+    @staticmethod
+    def tranform_anticipated_date(trial: Trial) -> str:
+        if trial.start_date_type is not None:
+            if trial.start_date_type.lower() == "anticipated":
+                return "true"
+            else:
+                return "false"
+        else:
+            return "false"
+
+    @staticmethod
+    def transform_references(references: list[tuple[str, str]]) -> str:
+        """Transforms a list of references into a string."""
+        if not references:
+            return ""
+        return join_list_to_str([f"{pmid},{ref_type}" for pmid, ref_type in references])
 
     @staticmethod
     def transform_secondary_ids(trial: Trial) -> str:
@@ -75,7 +98,6 @@ class Transformer:
         transformed_entities = set(transformed_entities)
         return join_list_to_str(transformed_entities)
 
-
     @staticmethod
     def transform_design(trial: Trial) -> str:
         """Transforms the design of a trial into a string."""
@@ -93,6 +115,13 @@ class Transformer:
     def transform_labels(node: Node) -> str:
         """Transforms the type of trial into a string."""
         return join_list_to_str(node.labels)
+
+    @staticmethod
+    def transform_phases(phases: Iterable[str]) -> str:
+        """Transforms the phases of a trial into a string."""
+        if not list(phases):
+            return ""
+        return join_list_to_str([phase.strip() for phase in phases if phase.strip()])
 
     @staticmethod
     def transform_title(trial: Trial) -> str:

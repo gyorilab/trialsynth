@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from typing import Optional, Union
 
 import indra.statements.agent as agent
@@ -147,6 +148,11 @@ class Node:
 
     @property
     def curie(self) -> str:
+        if not self.ns or not self.ns_id:
+            logger.warning(
+                f"{self} does not have a namespace or ID to produce a CURIE with."
+            )
+            return ""
         return curie_to_str(self.ns.lower(), self.ns_id)
 
     @curie.setter
@@ -174,7 +180,7 @@ class BioEntity(Node):
 
     Parameters
     ----------
-    term: str
+    text: str
         The text term of the bioentity from the given namespace
     labels: list[str]
         The labels of the bioentity
@@ -202,7 +208,7 @@ class BioEntity(Node):
         self.labels = labels
         self.text: str = text
         self.origin: str = origin
-        self.grounded_term = grounded_term
+        self.grounded_term: str = grounded_term
 
 
 class Condition(BioEntity):
@@ -211,7 +217,7 @@ class Condition(BioEntity):
 
     Parameters
     ----------
-    term: str
+    text: str
         The text term of the bioentity from the given namespace
     labels: list[str]
         The labels of the bioentity
@@ -240,6 +246,39 @@ class Condition(BioEntity):
 
 
 class Intervention(BioEntity):
+    """
+    Represents an intervention in a clinical trial.
+
+    Attributes
+    ----------
+    text : str
+        The text term of the intervention.
+    origin : str
+        The trial CURIE that the intervention is associated with.
+    source : str
+        The source registry of the intervention.
+    labels : list[str], optional
+        Additional labels for the intervention (default: ['intervention']).
+    ns : str, optional
+        The namespace of the intervention (default: None).
+    id : str, optional
+        The ID of the intervention (default: None).
+
+    Parameters
+    ----------
+    text : str
+        The text term of the intervention.
+    origin : str
+        The trial CURIE that the intervention is associated with.
+    source : str
+        The source registry of the intervention.
+    labels : list[str], optional
+        Additional labels for the intervention (default: None).
+    ns : str, optional
+        The namespace of the intervention (default: None).
+    id : str, optional
+        The ID of the intervention (default: None).
+    """
     def __init__(
         self,
         text: str,
@@ -252,54 +291,6 @@ class Intervention(BioEntity):
         super().__init__(text=text, labels=['intervention'], origin=origin, source=source, ns=ns, id=id)
         if labels:
             self.labels.extend(labels)
-
-
-class BioEntity(Node):
-    """Holds information about a biological entity
-
-    Attributes
-    ----------
-    ns: str
-        The namespace of the bioentity
-    id: str
-        The ID of the bioentity
-    source: Optional[str]
-        The source registry of the bioentity
-    term: str
-        The text term of the bioentity from the given namespace
-    origin: Optional[str]
-        The trial CURIE that the bioentity is associated with
-
-    Parameters
-    ----------
-    term: str
-        The text term of the bioentity from the given namespace
-    labels: list[str]
-        The labels of the bioentity
-    origin: str
-        The trial CURIE that the bioentity is associated with
-    source: Optional[str]
-        The source registry of the bioentity.
-    ns: Optional[str]
-        The namespace of the bioentity (default: None).
-    id: Optional[str]
-        The ID of the bioentity (default: None).
-    """
-
-    def __init__(
-        self,
-        term: str,
-        labels: list[str],
-        origin: str,
-        source: str,
-        ns: Optional[str] = None,
-        id: Optional[str] = None,
-    ):
-        super().__init__(ns=ns, id=id, source=source)
-        self.labels = labels
-        self.term: str = term
-        self.origin: str = origin
-        self.source: str = source
 
 
 class Edge:
@@ -388,6 +379,11 @@ class Trial(Node):
     ):
         super().__init__(source=source, ns=ns, ns_id=id)
         self.labels: list[str] = ["clinical_trial"]
+        self.phases: list[str] = []
+        self.start_date: Optional[datetime] = None
+        self.start_date_type: Optional[str] = None
+        self.overall_status: Optional[str] = None
+        self.why_stopped: Optional[str] = None
 
         if labels:
             self.labels.extend(labels)
@@ -398,6 +394,7 @@ class Trial(Node):
         self.primary_outcomes: list[Union[Outcome, str]] = []
         self.secondary_outcomes: list[Union[Outcome, str]] = []
         self.secondary_ids: list[SecondaryId] = []
+        self.references: list[tuple[str, str]] = []
 
     @property
     def conditions(self) -> list[Condition]:
