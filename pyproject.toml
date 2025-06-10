@@ -29,6 +29,8 @@ pandas = "^2.2.2"
 pydantic = "^2.7.1"
 python = ">=3.10"
 requests = "^2.31.0"
+scispacy = "^0.5.5"
+spacy = "^3.7.5"  # https://github.com/allenai/scispacy/blob/v0.5.5/setup.py#L44
 tqdm = "^4.66.2"
 
 [tool.poetry.group.test.dependencies]
