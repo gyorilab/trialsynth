@@ -125,8 +125,12 @@ class CTFetcher(Fetcher):
                 id=rest_trial.protocol_section.id_module.nct_id,
             )
 
-            # Brief Title
+            # Brief Title, summary and detailed description
             trial.title = rest_trial.protocol_section.id_module.brief_title
+            trial.brief_summary = rest_trial.protocol_section.description_module.brief_summary
+            trial.description = (
+                rest_trial.protocol_section.description_module.detailed_description
+            )
 
             # Study Type e.g. "Interventional", "Observational"
             study_type = rest_trial.protocol_section.design_module.study_type
