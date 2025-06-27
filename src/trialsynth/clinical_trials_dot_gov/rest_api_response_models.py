@@ -105,11 +105,20 @@ class OutcomesModule(BaseModel):
     secondary_outcome: list[Outcome] = Field(alias="secondaryOutcomes", default=[])
 
 
+class DescriptionModule(BaseModel):
+
+    brief_summary: str = Field(alias="briefSummary", default=None)
+    detailed_description: str = Field(alias="detailedDescription", default=None)
+
+
 class ProtocolSection(BaseModel):
 
     id_module: IDModule = Field(alias="identificationModule")
     conditions_module: ConditionsModule = Field(
         alias="conditionsModule", default=ConditionsModule()
+    )
+    description_module: BaseModel = Field(
+        alias="descriptionModule", default=DescriptionModule()
     )
     design_module: DesignModule = Field(alias="designModule", default=DesignModule())
     arms_interventions_module: ArmsInterventionsModule = Field(
