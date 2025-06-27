@@ -271,3 +271,13 @@ class CTFetcher(Fetcher):
             trials.append(trial)
 
         return trials
+
+
+def _parse_date(date_str: str) -> datetime.datetime:
+    """Parse a date string into a datetime object."""
+    if not date_str:
+        return None
+    try:
+        return datetime.datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        return datetime.datetime.strptime(date_str, "%Y-%m")
