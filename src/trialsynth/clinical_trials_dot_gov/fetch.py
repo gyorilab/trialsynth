@@ -247,6 +247,7 @@ class CTFetcher(Fetcher):
             trial.entities.extend([
                 Intervention(
                     text=i.name,
+                    description=i.description,
                     labels=[i.intervention_type],
                     origin=trial.curie,
                     source=self.config.registry,
