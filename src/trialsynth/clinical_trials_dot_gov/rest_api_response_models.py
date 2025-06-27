@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from datetime import datetime
 
 
 class SecondaryID(BaseModel):
@@ -19,17 +20,36 @@ class ConditionsModule(BaseModel):
     conditions: list[str] = Field(default=[])
 
 
-class StartDateStruct(BaseModel):
+class DateStruct(BaseModel):
 
-    date: str = Field(default=None)
+    date: datetime = Field(default=None)
     date_type: str = Field(alias="type", default=None)
 
 
 class StatusModule(BaseModel):
 
-    start_date_struct: StartDateStruct = Field(
-        alias="startDateStruct", default=StartDateStruct()
+    start_date_struct: DateStruct = Field(
+        alias="startDateStruct", default=DateStruct()
     )
+    primary_completion_date_struct: DateStruct = Field(
+        alias="primaryCompletionDateStruct",
+        default=DateStruct(),
+        description="The date that the final participant was examined or "
+                    "received an intervention for the purposes of final "
+                    "collection of data for the primary outcome"
+    )
+    # Also known as "Study Completion Date", see:
+    # https://clinicaltrials.gov/policy/protocol-definitions#LastFollowUpDate
+    completion_date_struct: DateStruct = Field(
+        alias="completionDateStruct",
+        default=DateStruct(),
+        description="The date the final participant was examined or received "
+                    "an intervention for purposes of final collection of data "
+                    "for the primary and secondary outcome measures and "
+                    "adverse events (for example, last participant’s last "
+                    "visit)",
+    )
+    last_update_submit_date: datetime = Field(alias="lastUpdateSubmitDate", default=None)
     overall_status: str = Field(alias="overallStatus", default=None)
     why_stopped: str = Field(alias="whyStopped", default=None)
 
