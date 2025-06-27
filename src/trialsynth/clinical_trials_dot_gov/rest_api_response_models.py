@@ -145,7 +145,7 @@ class ProtocolSection(BaseModel):
     conditions_module: ConditionsModule = Field(
         alias="conditionsModule", default=ConditionsModule()
     )
-    description_module: BaseModel = Field(
+    description_module: DescriptionModule = Field(
         alias="descriptionModule", default=DescriptionModule()
     )
     design_module: DesignModule = Field(alias="designModule", default=DesignModule())
