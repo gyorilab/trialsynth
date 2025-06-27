@@ -72,6 +72,7 @@ class Intervention(BaseModel):
 
     name: str = Field(default=None)
     intervention_type: str = Field(alias="type")
+    description: str = Field(default=None)
 
 
 class ArmsInterventionsModule(BaseModel):
