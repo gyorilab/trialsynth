@@ -5,7 +5,6 @@ See https://clinicaltrials.gov/data-api/about-api/study-data-structure
 for more details on the structure of the response.
 """
 from pydantic import BaseModel, Field
-from datetime import datetime
 
 
 class SecondaryID(BaseModel):
@@ -28,7 +27,7 @@ class ConditionsModule(BaseModel):
 
 class DateStruct(BaseModel):
 
-    date: datetime = Field(default=None)
+    date: str = Field(default=None)
     date_type: str = Field(alias="type", default=None)
 
 
@@ -55,7 +54,9 @@ class StatusModule(BaseModel):
                     "adverse events (for example, last participant’s last "
                     "visit)",
     )
-    last_update_submit_date: datetime = Field(alias="lastUpdateSubmitDate", default=None)
+    last_update_submit_date: str = Field(
+        alias="lastUpdateSubmitDate", default=None
+    )
     overall_status: str = Field(alias="overallStatus", default=None)
     why_stopped: str = Field(alias="whyStopped", default=None)
 
