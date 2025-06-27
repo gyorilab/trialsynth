@@ -1,3 +1,9 @@
+"""
+Models for the unflattened response from the clinicaltrials.gov REST API.
+
+See https://clinicaltrials.gov/data-api/about-api/study-data-structure
+for more details on the structure of the response.
+"""
 from pydantic import BaseModel, Field
 from datetime import datetime
 
