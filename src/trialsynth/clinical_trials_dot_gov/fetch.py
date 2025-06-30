@@ -182,7 +182,7 @@ class CTFetcher(Fetcher):
                 rest_trial.protocol_section.status_module.last_update_submit_date
             )
             if last_update_date_str is not None:
-                trial.last_update_date = _parse_date(last_update_date_str)
+                trial.last_update_submit_date = _parse_date(last_update_date_str)
 
             # Overall status e.g. "COMPLETED", "RECRUITING", "TERMINATED"
             overall_status = rest_trial.protocol_section.status_module.overall_status
