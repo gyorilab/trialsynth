@@ -321,43 +321,6 @@ class Intervention(BioEntity):
             self.labels.extend(labels)
 
 
-class Edge:
-    """Edge between a trial and a bioentity
-
-    Attributes
-    ----------
-    bio_ent_curie: str
-        The CURIE of the bioentity
-    trial_curie: str
-        The CURIE of the trial
-    rel_type: str
-        The type of relationship between the bioentity and the trial
-    rel_type_curie: str
-        The CURIE of the relationship type
-    source: str
-        The source of the relationship
-    """
-
-    def __init__(
-        self, bio_ent_curie: str, trial_curie: str, rel_type: str, source: str
-    ):
-        self.bio_ent_curie = bio_ent_curie
-        self.trial_curie = trial_curie
-        self.rel_type = rel_type
-        self.source = source
-
-        rel_type_to_curie = {
-            "has_condition": "debio:0000036",
-            "has_intervention": "debio:0000035",
-        }
-        if rel_type not in rel_type_to_curie.keys():
-            logger.warning(
-                f"Relationship type: {rel_type} not defined. Defaulting to empty string for curie"
-            )
-            self.rel_type_curie = ""
-        else:
-            self.rel_type_curie = rel_type_to_curie[rel_type]
-
 class Trial(Node):
     """Holds information about a clinical trial
 
