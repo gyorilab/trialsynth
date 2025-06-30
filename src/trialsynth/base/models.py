@@ -423,7 +423,7 @@ class Trial(Node):
 
         self.title: Optional[str] = None
         self.brief_summary: Optional[str] = None
-        self.description: Optional[str] = None
+        self.detailed_description: Optional[str] = None
         self.design: DesignInfo = DesignInfo()
         self.entities: list[BioEntity] = []
         self.primary_outcomes: list[Union[Outcome, str]] = []
