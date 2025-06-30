@@ -195,8 +195,13 @@ class Processor:
             for entity in entity_iter:
                 with logging_redirect_tqdm():
                     trial = self.curie_to_trial[entity.origin]
+                    context = trial.title
+                    if trial.brief_summary:
+                        context += "\n" + trial.brief_summary
+                    if trial.detailed_description:
+                        context += "\n" + trial.detailed_description
 
-                    entities = list(grounder(entity, trial.title))
+                    entities = list(grounder(entity, context=context))
 
                     trial.entities.extend(entities)
 
@@ -236,6 +241,8 @@ class Processor:
         headers = [
             "curie:CURIE",
             "title:string",
+            "brief_summary:string",
+            "detailed_description:string",
             "labels:LABEL[]",
             "design:DESIGN",
             "conditions:CURIE[]",
@@ -247,6 +254,11 @@ class Processor:
             "phases:PHASE[]",
             "start_year:integer",
             "start_year_anticipated:boolean",
+            "primary_completion_year:integer",
+            "primary_completion_year_type:string",
+            "completion_year:integer",
+            "completion_year_type:string",
+            "last_update_submit_year:integer",
             "status:string",
             "why_stopped:string",
             "references:string[]",
