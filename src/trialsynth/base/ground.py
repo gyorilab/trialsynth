@@ -1,8 +1,7 @@
 import copy
 import logging
 import warnings
-from collections import defaultdict
-from typing import Iterator, Optional, Callable, Tuple 
+from typing import Iterator, Optional, Callable
 
 nmslib_logger = logging.getLogger('nmslib')
 nmslib_logger.setLevel(logging.ERROR)
@@ -19,10 +18,7 @@ from .util import (
     must_override
 )
 
-import scispacy
 import spacy
-from scispacy.abbreviation import AbbreviationDetector
-from scispacy.linking import EntityLinker
 
 logger = logging.getLogger(__name__)
 
