@@ -197,7 +197,9 @@ class Grounder:
             )
 
     def ground(
-        self, entity: BioEntity, context: Optional[str] = None
+        self,
+        entity: BioEntity,
+        context: Optional[str] = None
     ) -> Iterator[BioEntity]:
         """Ground a BioEntity to a CURIE."""
         entity = self.preprocess(entity)
@@ -225,6 +227,13 @@ class Grounder:
                 annotations = self.annotator(entity.text, context=context)
                 for annotation in annotations:
                     yield from self._yield_entity(entity, annotation.matches[0])
+                # If no matches are found, we try to annotate the description if it exists
+                if entity.description:
+                    annotations = self.annotator(
+                        entity.description, context=context
+                    )
+                    for annotation in annotations:
+                        yield from self._yield_entity(entity, annotation.matches[0])
 
 
 class ConditionGrounder(Grounder):
