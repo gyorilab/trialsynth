@@ -37,7 +37,8 @@ Run the following to install this repository's package in editable mode:
 ```bash
 $ git clone https://github.com/gyorilab/trialsynth
 $ cd trialsynth
-$ pip install -e
+$ uv venv --python 3.11
+$ uv sync --all-groups
 ```
 
 ## Local run

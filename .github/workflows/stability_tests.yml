@@ -12,6 +12,9 @@ on:
       - src/*
   workflow_dispatch:
 
+env:
+  UV_UNMANAGED_INSTALL: /usr/local/bin
+
 jobs:
   tests:
     runs-on: ubuntu-22.04
@@ -21,11 +24,8 @@ jobs:
       - name: Install Cython dependencies
         run: sudo apt update && sudo apt install -y gcc build-essential python3-dev curl
 
-      - name: Install poetry
-        run: curl -sSL https://install.python-poetry.org | python3 -
-
-      - name: Install python dependencies
-        run: poetry install
+      - name: Install uv
+        run: curl -fL --no-progress-meter --connect-timeout 15 --max-time 120 -- https://astral.sh/uv/install.sh | sh
 
       - name: Run tests
-        run: poetry run pytest -v
+        run: uv run --group test -- pytest -v
