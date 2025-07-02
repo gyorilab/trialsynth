@@ -1,42 +1,45 @@
-[tool.poetry]
+[build-system]
+build-backend = "uv_build"
+requires = [
+  "uv-build (~=0.7.17)",
+]
+
+
+[project]
 name = "trialsynth"
-version = "0.1.0-alpha"
+version = "0.1.0a0"
 description = "Extracts clinical trial information from sources"
 authors = [
-  "tomooga <oga.t@northeastern.edu>",
-  "jim-sheldon <5619539+jim-sheldon@users.noreply.github.com>",
+  { name = "Tomo Oga", email = "oga.t@northeastern.edu" },
+  { name = "Jim Sheldon", email = "5619539+jim-sheldon@users.noreply.github.com" },
 ]
-license = "BSD-2-Clause"
 readme = "README.md"
-
-packages = [{ include = "trialsynth", from = "src" }]
-
+requires-python = ">=3.10"
+license = "BSD-2-Clause"
 classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
 ]
+dependencies = [
+  "addict (~=2.4)",
+  "bioregistry (~=0.11.6)",
+  "click (~=8.1)",
+  "gilda (~=1.1)",
+  "indra @ git+https://github.com/sorgerlab/indra.git",
+  "numpy (~=1.26)",  # https://github.com/allenai/scispacy/issues/536
+  "overrides (~=7.7)",
+  "pandas (~=2.2)",
+  "pydantic[email] (~=2.7)",
+  "requests (~=2.31)",
+  "scispacy (~=0.5.5)",
+  "spacy (~=3.7)",  # https://github.com/allenai/scispacy/blob/v0.5.5/setup.py#L44
+  "tqdm (~=4.66)",
+]
 
-[tool.poetry.dependencies]
-addict = "^2.4.0"
-bioregistry = "^0.11.6"
-click = "^8.1.7"
-gilda = "^1.1.0"
-indra = { git = "https://github.com/sorgerlab/indra.git" }
-numpy = "<2.0.0"  # https://github.com/allenai/scispacy/issues/536
-overrides = "^7.7.0"
-pandas = "^2.2.2"
-pydantic = "^2.7.1"
-python = ">=3.10"
-requests = "^2.31.0"
-scispacy = "^0.5.5"
-spacy = "^3.7.5"  # https://github.com/allenai/scispacy/blob/v0.5.5/setup.py#L44
-tqdm = "^4.66.2"
 
-[tool.poetry.group.test.dependencies]
-pytest = "^8.1.1"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[dependency-groups]
+test = [
+  "pytest (~=8.1)",
+]
