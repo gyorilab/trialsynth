@@ -165,7 +165,7 @@ class Processor:
         """Extracts bioentities from trials and creates a dictionary of trial CURIEs to trials."""
 
         for trial in self.trials:
-            
+
             self.curie_to_trial[trial.curie] = trial
 
             for entity in trial.entities:
@@ -288,13 +288,13 @@ class Processor:
         -------
         None
         """
-        curie_to_entity = {}
-
+        entities = set()
         for trial in self.trials:
             for entity in trial.entities:
-                curie_to_entity[entity.curie] = entity
-
-        entities = [self.transformer.flatten_bioentity(entity) for entity in curie_to_entity.values()]
+                flat_entity = self.transformer.flatten_bioentity(entity)
+                entities.add(flat_entity)
+        # Sort entities by entity CURIE and trial CURIE
+        entities = sorted(entities, key=lambda x: (x[0], x[-1]))
         store.save_data_as_flatfile(
             entities,
             path=path,
@@ -303,6 +303,7 @@ class Processor:
                 "term:string",
                 "labels:LABEL[]",
                 "source_registry:string",
+                "trial:CURIE",
             ],
             sample_path=sample_path,
             num_samples=self.config.num_sample_entries,
