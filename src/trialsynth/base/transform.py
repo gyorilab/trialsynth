@@ -26,6 +26,7 @@ class Transformer:
         return (
             trial.curie,
             self.transform_plain_text(trial.title),
+            self.transform_plain_text(trial.official_title or ""),
             self.transform_plain_text(trial.brief_summary or ""),
             self.transform_plain_text(trial.detailed_description or ""),
             self.transform_labels(trial),

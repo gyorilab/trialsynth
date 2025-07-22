@@ -127,6 +127,7 @@ class CTFetcher(Fetcher):
 
             # Brief Title, summary and detailed description
             trial.title = rest_trial.protocol_section.id_module.brief_title
+            trial.official_title = rest_trial.protocol_section.id_module.official_title
             trial.brief_summary = rest_trial.protocol_section.description_module.brief_summary
             trial.detailed_description = (
                 rest_trial.protocol_section.description_module.detailed_description

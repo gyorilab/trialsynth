@@ -336,6 +336,8 @@ class Trial(Node):
         The source registry of the trial (default: None).
     title: str
         The title of the trial
+    official_title: Optional[str]
+        The official title of the trial (default: None).
     design: Union[DesignInfo, str]
         The design information of the trial
     conditions: list
@@ -385,6 +387,7 @@ class Trial(Node):
             self.labels.extend(labels)
 
         self.title: Optional[str] = None
+        self.official_title: Optional[str] = None
         self.brief_summary: Optional[str] = None
         self.detailed_description: Optional[str] = None
         self.design: DesignInfo = DesignInfo()

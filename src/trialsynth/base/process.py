@@ -241,6 +241,7 @@ class Processor:
         headers = [
             "curie:CURIE",
             "title:string",
+            "official_title:string",
             "brief_summary:string",
             "detailed_description:string",
             "labels:LABEL[]",

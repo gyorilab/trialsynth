@@ -17,6 +17,7 @@ class IDModule(BaseModel):
 
     nct_id: str = Field(alias="nctId")
     brief_title: str = Field(alias="briefTitle")
+    official_title: str = Field(alias="officialTitle", default=None)
     secondary_ids: list[SecondaryID] = Field(alias="secondaryIds", default=[])
 
 
