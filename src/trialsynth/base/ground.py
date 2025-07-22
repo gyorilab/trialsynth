@@ -1,7 +1,7 @@
 import copy
 import logging
 import warnings
-from typing import Iterator, Optional, Callable
+from typing import Iterator, Optional, Callable, Literal
 
 nmslib_logger = logging.getLogger('nmslib')
 nmslib_logger.setLevel(logging.ERROR)
@@ -35,7 +35,7 @@ class Annotator:
         self,
         *,
         namespaces: Optional[list[str]] = None,
-        mesh_prefix: Optional[str] = "MESH"
+        mesh_prefix: Optional[Literal["mesh", "MESH"]] = "MESH"
     ):
         """Base class for annotators that annotate text with named entities.
 
@@ -43,6 +43,9 @@ class Annotator:
         ----------
         namespaces : Optional[list[str]]
             A list of namespaces to consider for annotation. If None, defaults to ["MESH"].
+        mesh_prefix : Optional[Literal["mesh", "MESH"]]
+            The prefix to use for MESH grounding. If None, defaults to "MESH". Use
+            this to specify the capitalization of the MESH prefix for grounding.
         """
         if namespaces is None:
             namespaces = [mesh_prefix]
@@ -99,7 +102,7 @@ class Grounder:
     grounder_func : Optional[GrounderSignature], optional
         A callable that takes a string and returns a list of ScoredMatches.
         If None, defaults to `gilda.ground` (default: None).
-    mesh_prefix : Optional[str], optional. Defaults to "MESH".
+    mesh_prefix : Optional[Literal["mesh", "MESH"]]
         The prefix to use for MESH grounding. If None, defaults to "MESH". Use
         this to specify the capitalization of the MESH prefix for grounding.
 
@@ -113,10 +116,9 @@ class Grounder:
         A callable that annotates text with named entities.
     grounder_func : GrounderSignature
         A callable that grounds text to named entities.
-    mesh_prefix : str
+    mesh_prefix : Optional[Literal["mesh", "MESH"]]
         The prefix to use for MESH grounding. Should match the capitalization
-        used in by the grounding function, typically this would be "MESH" or
-        "mesh".
+        returned by the grounding function.
     """
 
     def __init__(
@@ -126,7 +128,7 @@ class Grounder:
         restrict_mesh_prefix: list[str] = None,
         annotator: AnnotatorSignature = GildaAnnotator(),
         grounder_func: Optional[GrounderSignature] = None,
-        mesh_prefix: Optional[str] = "MESH"
+        mesh_prefix: Optional[Literal["mesh", "MESH"]] = "MESH"
     ):
         self.namespaces: Optional[list[str]] = namespaces
         self.restrict_mesh_prefix = restrict_mesh_prefix
@@ -238,7 +240,7 @@ class ConditionGrounder(Grounder):
         namespaces: Optional[list[str]] = None,
         annotator: Optional[AnnotatorSignature] = None,
         grounder_func: Optional[GrounderSignature] = None,
-        mesh_prefix: Optional[str] = "MESH"
+        mesh_prefix: Optional[Literal["mesh", "MESH"]] = "MESH"
     ):
         if namespaces is None:
             namespaces = CONDITION_NS
@@ -259,7 +261,7 @@ class InterventionGrounder(Grounder):
         namespaces: Optional[list[str]] = None,
         annotator: Optional[AnnotatorSignature] = None,
         grounder_func: Optional[GrounderSignature] = None,
-        mesh_prefix: Optional[str] = "MESH"
+        mesh_prefix: Literal["MESH", "mesh"] = "MESH"
     ):
         if namespaces is None:
             namespaces = INTERVENTION_NS
