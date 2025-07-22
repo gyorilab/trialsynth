@@ -25,7 +25,10 @@ class Transformer:
         """
         return (
             trial.curie,
-            self.transform_title(trial),
+            self.transform_plain_text(trial.title),
+            self.transform_plain_text(trial.official_title or ""),
+            self.transform_plain_text(trial.brief_summary or ""),
+            self.transform_plain_text(trial.detailed_description or ""),
             self.transform_labels(trial),
             self.transform_design(trial),
             self.transform_entities(trial.conditions),
@@ -37,6 +40,11 @@ class Transformer:
             self.transform_phases(trial.phases),
             trial.start_date.year if trial.start_date else "",
             self.tranform_anticipated_date(trial),
+            trial.primary_completion_date.year if trial.primary_completion_date else "",
+            trial.primary_completion_date_type or "",
+            trial.completion_date.year if trial.completion_date else "",
+            trial.completion_date_type or "",
+            trial.last_update_submit_date.year if trial.last_update_submit_date else "",
             trial.overall_status,
             trial.why_stopped if trial.why_stopped else "",
             self.transform_references(trial.references),
@@ -124,13 +132,13 @@ class Transformer:
         return join_list_to_str([phase.strip() for phase in phases if phase.strip()])
 
     @staticmethod
-    def transform_title(trial: Trial) -> str:
+    def transform_plain_text(txt: str) -> str:
         """Transforms the title of a trial into a string."""
-        return trial.title.strip()
+        return txt.strip()
 
     def flatten_bioentity(
         self, entity: BioEntity
-    ) -> Tuple[str, str, str, str]:
+    ) -> Tuple[str, str, str, str, str]:
         """Flattens a BioEntity into a tuple of strings.
 
         Parameters
@@ -140,7 +148,7 @@ class Transformer:
 
         Returns
         -------
-        Tuple[str, str, str, str]
+        Tuple[str, str, str, str, str]
             A tuple of the flattened BioEntity. In order of curie, term, source.
         """
         return (
@@ -148,10 +156,11 @@ class Transformer:
             entity.grounded_term,
             self.transform_labels(entity),
             entity.source,
+            entity.origin,
         )
 
     @staticmethod
-    def flatten_edge(edge: Edge) -> Tuple[str, str, str, str, str]:
+    def flatten_edge(edge: Edge) -> Tuple[str, str, str, str]:
         """Flattens an Edge into a tuple of strings.
 
         Parameters
@@ -161,7 +170,7 @@ class Transformer:
 
         Returns
         -------
-        Tuple[str, str, str, str, str]
+        Tuple[str, str, str, str]
             A tuple of the flattened Edge. In order of trial_curie, bio_ent_curie, rel_type, rel_type_curie, source.
         """
         return (

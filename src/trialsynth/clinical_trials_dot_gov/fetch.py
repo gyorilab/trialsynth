@@ -125,8 +125,13 @@ class CTFetcher(Fetcher):
                 id=rest_trial.protocol_section.id_module.nct_id,
             )
 
-            # Brief Title
+            # Brief Title, summary and detailed description
             trial.title = rest_trial.protocol_section.id_module.brief_title
+            trial.official_title = rest_trial.protocol_section.id_module.official_title
+            trial.brief_summary = rest_trial.protocol_section.description_module.brief_summary
+            trial.detailed_description = (
+                rest_trial.protocol_section.description_module.detailed_description
+            )
 
             # Study Type e.g. "Interventional", "Observational"
             study_type = rest_trial.protocol_section.design_module.study_type
@@ -140,17 +145,45 @@ class CTFetcher(Fetcher):
             if phases:
                 trial.phases.extend([phase.strip().lower() for phase in phases])
 
-            # Start date, either %Y-%m-%d or %Y-%m"
+            # Start date, completion date, primary completion date, last update date
             start_date_str = (
                 rest_trial.protocol_section.status_module.start_date_struct.date
             )
-            date_type = rest_trial.protocol_section.status_module.start_date_struct.date_type
+            start_date_type = rest_trial.protocol_section.status_module.start_date_struct.date_type
             if start_date_str is not None:
-                trial.start_date = datetime.datetime.strptime(
-                    start_date_str,
-                    "%Y-%m-%d" if start_date_str.count("-") == 2 else "%Y-%m",
+                trial.start_date = _parse_date(start_date_str)
+                trial.start_date_type = start_date_type.strip().lower() if start_date_type else None
+            completion_date_str = (
+                rest_trial.protocol_section.status_module.completion_date_struct.date
+            )
+            completion_date_type = (
+                rest_trial.protocol_section.status_module.completion_date_struct.date_type
+            )
+            if completion_date_str is not None:
+                trial.completion_date = _parse_date(completion_date_str)
+                trial.completion_date_type = (
+                    completion_date_type.strip().lower() if completion_date_type else None
                 )
-                trial.start_date_type = date_type.strip().lower() if date_type else None
+            primary_completion_date_str = (
+                rest_trial.protocol_section.status_module.primary_completion_date_struct.date
+            )
+            primary_completion_date_type = (
+                rest_trial.protocol_section.status_module.primary_completion_date_struct.date_type
+            )
+            if primary_completion_date_str is not None:
+                trial.primary_completion_date = _parse_date(
+                    primary_completion_date_str
+                )
+                trial.primary_completion_date_type = (
+                    primary_completion_date_type.strip().lower()
+                    if primary_completion_date_type
+                    else None
+                )
+            last_update_date_str = (
+                rest_trial.protocol_section.status_module.last_update_submit_date
+            )
+            if last_update_date_str is not None:
+                trial.last_update_submit_date = _parse_date(last_update_date_str)
 
             # Overall status e.g. "COMPLETED", "RECRUITING", "TERMINATED"
             overall_status = rest_trial.protocol_section.status_module.overall_status
@@ -215,6 +248,7 @@ class CTFetcher(Fetcher):
             trial.entities.extend([
                 Intervention(
                     text=i.name,
+                    description=i.description,
                     labels=[i.intervention_type],
                     origin=trial.curie,
                     source=self.config.registry,
@@ -271,3 +305,13 @@ class CTFetcher(Fetcher):
             trials.append(trial)
 
         return trials
+
+
+def _parse_date(date_str: str) -> datetime.datetime:
+    """Parse a date string into a datetime object."""
+    if not date_str:
+        return None
+    try:
+        return datetime.datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        return datetime.datetime.strptime(date_str, "%Y-%m")

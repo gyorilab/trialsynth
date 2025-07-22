@@ -165,7 +165,7 @@ class Processor:
         """Extracts bioentities from trials and creates a dictionary of trial CURIEs to trials."""
 
         for trial in self.trials:
-            
+
             self.curie_to_trial[trial.curie] = trial
 
             for entity in trial.entities:
@@ -195,8 +195,13 @@ class Processor:
             for entity in entity_iter:
                 with logging_redirect_tqdm():
                     trial = self.curie_to_trial[entity.origin]
+                    context = trial.title
+                    if trial.brief_summary:
+                        context += "\n" + trial.brief_summary
+                    if trial.detailed_description:
+                        context += "\n" + trial.detailed_description
 
-                    entities = list(grounder(entity, trial.title))
+                    entities = list(grounder(entity, context=context))
 
                     trial.entities.extend(entities)
 
@@ -236,6 +241,9 @@ class Processor:
         headers = [
             "curie:CURIE",
             "title:string",
+            "official_title:string",
+            "brief_summary:string",
+            "detailed_description:string",
             "labels:LABEL[]",
             "design:DESIGN",
             "conditions:CURIE[]",
@@ -247,6 +255,11 @@ class Processor:
             "phases:PHASE[]",
             "start_year:integer",
             "start_year_anticipated:boolean",
+            "primary_completion_year:integer",
+            "primary_completion_year_type:string",
+            "completion_year:integer",
+            "completion_year_type:string",
+            "last_update_submit_year:integer",
             "status:string",
             "why_stopped:string",
             "references:string[]",
@@ -276,13 +289,13 @@ class Processor:
         -------
         None
         """
-        curie_to_entity = {}
-
+        entities = set()
         for trial in self.trials:
             for entity in trial.entities:
-                curie_to_entity[entity.curie] = entity
-
-        entities = [self.transformer.flatten_bioentity(entity) for entity in curie_to_entity.values()]
+                flat_entity = self.transformer.flatten_bioentity(entity)
+                entities.add(flat_entity)
+        # Sort entities by entity CURIE and trial CURIE
+        entities = sorted(entities, key=lambda x: (x[0], x[-1]))
         store.save_data_as_flatfile(
             entities,
             path=path,
@@ -291,6 +304,7 @@ class Processor:
                 "term:string",
                 "labels:LABEL[]",
                 "source_registry:string",
+                "trial:CURIE",
             ],
             sample_path=sample_path,
             num_samples=self.config.num_sample_entries,

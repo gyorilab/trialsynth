@@ -173,7 +173,11 @@ class BioEntity(Node):
         The source registry of the bioentity
     text: str
         The free-text of the bioentity
-    grounded_term: str
+    description: Optional[str]
+        The description of the bioentity
+    labels: list[str]
+        The labels of the bioentity
+    grounded_term: Optional[str]
         The entry-term for the grounded bioentity from the given namespace
     origin: Optional[str]
         The trial CURIE that the bioentity is associated with
@@ -200,6 +204,7 @@ class BioEntity(Node):
         labels: list[str],
         origin: str,
         source: str,
+        description: Optional[str] = None,
         ns: Optional[str] = None,
         id: Optional[str] = None,
         grounded_term: Optional[str] = None
@@ -207,6 +212,7 @@ class BioEntity(Node):
         super().__init__(ns=ns, ns_id=id, source=source)
         self.labels = labels
         self.text: str = text
+        self.description: str = description
         self.origin: str = origin
         self.grounded_term: str = grounded_term
 
@@ -219,6 +225,8 @@ class Condition(BioEntity):
     ----------
     text: str
         The text term of the bioentity from the given namespace
+    description: Optional[str]
+        The description of the bioentity (default: None).
     labels: list[str]
         The labels of the bioentity
     origin: str
@@ -236,11 +244,20 @@ class Condition(BioEntity):
         text: str,
         origin: str,
         source: str,
+        description: Optional[str] = None,
         labels: Optional[list[str]] = None,
         ns: Optional[str] = None,
         id: Optional[str] = None,
     ):
-        super().__init__(text=text, labels=['condition'], origin=origin, source=source, ns=ns, id=id)
+        super().__init__(
+            text=text,
+            labels=['condition'],
+            origin=origin,
+            source=source,
+            ns=ns,
+            id=id,
+            description=description,
+        )
         if labels:
             self.labels.extend(labels)
 
@@ -257,6 +274,8 @@ class Intervention(BioEntity):
         The trial CURIE that the intervention is associated with.
     source : str
         The source registry of the intervention.
+    description : Optional[str]
+        The description of the intervention (default: None).
     labels : list[str], optional
         Additional labels for the intervention (default: ['intervention']).
     ns : str, optional
@@ -284,51 +303,23 @@ class Intervention(BioEntity):
         text: str,
         origin: str,
         source: str,
+        description: Optional[str] = None,
         labels: Optional[list[str]] = None,
         ns: Optional[str] = None,
         id: Optional[str] = None,
     ):
-        super().__init__(text=text, labels=['intervention'], origin=origin, source=source, ns=ns, id=id)
+        super().__init__(
+            text=text,
+            description=description,
+            labels=['intervention'],
+            origin=origin,
+            source=source,
+            ns=ns,
+            id=id
+        )
         if labels:
             self.labels.extend(labels)
 
-
-class Edge:
-    """Edge between a trial and a bioentity
-
-    Attributes
-    ----------
-    bio_ent_curie: str
-        The CURIE of the bioentity
-    trial_curie: str
-        The CURIE of the trial
-    rel_type: str
-        The type of relationship between the bioentity and the trial
-    rel_type_curie: str
-        The CURIE of the relationship type
-    source: str
-        The source of the relationship
-    """
-
-    def __init__(
-        self, bio_ent_curie: str, trial_curie: str, rel_type: str, source: str
-    ):
-        self.bio_ent_curie = bio_ent_curie
-        self.trial_curie = trial_curie
-        self.rel_type = rel_type
-        self.source = source
-
-        rel_type_to_curie = {
-            "has_condition": "debio:0000036",
-            "has_intervention": "debio:0000035",
-        }
-        if rel_type not in rel_type_to_curie.keys():
-            logger.warning(
-                f"Relationship type: {rel_type} not defined. Defaulting to empty string for curie"
-            )
-            self.rel_type_curie = ""
-        else:
-            self.rel_type_curie = rel_type_to_curie[rel_type]
 
 class Trial(Node):
     """Holds information about a clinical trial
@@ -345,6 +336,8 @@ class Trial(Node):
         The source registry of the trial (default: None).
     title: str
         The title of the trial
+    official_title: Optional[str]
+        The official title of the trial (default: None).
     design: Union[DesignInfo, str]
         The design information of the trial
     conditions: list
@@ -382,6 +375,11 @@ class Trial(Node):
         self.phases: list[str] = []
         self.start_date: Optional[datetime] = None
         self.start_date_type: Optional[str] = None
+        self.completion_date: Optional[datetime] = None
+        self.completion_date_type: Optional[str] = None
+        self.primary_completion_date: Optional[datetime] = None
+        self.primary_completion_date_type: Optional[str] = None
+        self.last_update_submit_date: Optional[datetime] = None
         self.overall_status: Optional[str] = None
         self.why_stopped: Optional[str] = None
 
@@ -389,6 +387,9 @@ class Trial(Node):
             self.labels.extend(labels)
 
         self.title: Optional[str] = None
+        self.official_title: Optional[str] = None
+        self.brief_summary: Optional[str] = None
+        self.detailed_description: Optional[str] = None
         self.design: DesignInfo = DesignInfo()
         self.entities: list[BioEntity] = []
         self.primary_outcomes: list[Union[Outcome, str]] = []

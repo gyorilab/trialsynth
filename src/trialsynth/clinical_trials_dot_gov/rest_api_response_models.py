@@ -1,3 +1,9 @@
+"""
+Models for the unflattened response from the clinicaltrials.gov REST API.
+
+See https://clinicaltrials.gov/data-api/about-api/study-data-structure
+for more details on the structure of the response.
+"""
 from pydantic import BaseModel, Field
 
 
@@ -11,6 +17,7 @@ class IDModule(BaseModel):
 
     nct_id: str = Field(alias="nctId")
     brief_title: str = Field(alias="briefTitle")
+    official_title: str = Field(alias="officialTitle", default=None)
     secondary_ids: list[SecondaryID] = Field(alias="secondaryIds", default=[])
 
 
@@ -19,7 +26,7 @@ class ConditionsModule(BaseModel):
     conditions: list[str] = Field(default=[])
 
 
-class StartDateStruct(BaseModel):
+class DateStruct(BaseModel):
 
     date: str = Field(default=None)
     date_type: str = Field(alias="type", default=None)
@@ -27,8 +34,29 @@ class StartDateStruct(BaseModel):
 
 class StatusModule(BaseModel):
 
-    start_date_struct: StartDateStruct = Field(
-        alias="startDateStruct", default=StartDateStruct()
+    start_date_struct: DateStruct = Field(
+        alias="startDateStruct", default=DateStruct()
+    )
+    primary_completion_date_struct: DateStruct = Field(
+        alias="primaryCompletionDateStruct",
+        default=DateStruct(),
+        description="The date that the final participant was examined or "
+                    "received an intervention for the purposes of final "
+                    "collection of data for the primary outcome"
+    )
+    # Also known as "Study Completion Date", see:
+    # https://clinicaltrials.gov/policy/protocol-definitions#LastFollowUpDate
+    completion_date_struct: DateStruct = Field(
+        alias="completionDateStruct",
+        default=DateStruct(),
+        description="The date the final participant was examined or received "
+                    "an intervention for purposes of final collection of data "
+                    "for the primary and secondary outcome measures and "
+                    "adverse events (for example, last participant’s last "
+                    "visit)",
+    )
+    last_update_submit_date: str = Field(
+        alias="lastUpdateSubmitDate", default=None
     )
     overall_status: str = Field(alias="overallStatus", default=None)
     why_stopped: str = Field(alias="whyStopped", default=None)
@@ -72,6 +100,7 @@ class Intervention(BaseModel):
 
     name: str = Field(default=None)
     intervention_type: str = Field(alias="type")
+    description: str = Field(default=None)
 
 
 class ArmsInterventionsModule(BaseModel):
@@ -105,11 +134,20 @@ class OutcomesModule(BaseModel):
     secondary_outcome: list[Outcome] = Field(alias="secondaryOutcomes", default=[])
 
 
+class DescriptionModule(BaseModel):
+
+    brief_summary: str = Field(alias="briefSummary", default=None)
+    detailed_description: str = Field(alias="detailedDescription", default=None)
+
+
 class ProtocolSection(BaseModel):
 
     id_module: IDModule = Field(alias="identificationModule")
     conditions_module: ConditionsModule = Field(
         alias="conditionsModule", default=ConditionsModule()
+    )
+    description_module: DescriptionModule = Field(
+        alias="descriptionModule", default=DescriptionModule()
     )
     design_module: DesignModule = Field(alias="designModule", default=DesignModule())
     arms_interventions_module: ArmsInterventionsModule = Field(
