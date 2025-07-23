@@ -66,7 +66,9 @@ class TestBaseModels(unittest.TestCase):
         self.assertEqual(set(self.intervention.labels), {"vaccine", "intervention"})
 
     def test_trial_node(self):
-        self.trial.entities = [self.intervention, self.condition]
+        self.trial.entities = [
+            self.intervention, self.condition, Node(source="test_source")
+        ]
         self.assertEqual(len(self.trial.conditions), 1)
         self.assertEqual(self.trial.interventions[0].curie, self.intervention.curie)
         self.assertEqual(len(self.trial.interventions), 1)
