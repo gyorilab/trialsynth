@@ -69,10 +69,13 @@ class TestBaseModels(unittest.TestCase):
         self.trial.entities = [
             self.intervention, self.condition, Node(source="test_source")
         ]
+        # Should only return the condition
         self.assertEqual(len(self.trial.conditions), 1)
-        self.assertEqual(self.trial.interventions[0].curie, self.intervention.curie)
-        self.assertEqual(len(self.trial.interventions), 1)
         self.assertEqual(self.trial.conditions[0].curie, self.condition.curie)
+
+        # Should only return the intervention
+        self.assertEqual(len(self.trial.interventions), 1)
+        self.assertEqual(self.trial.interventions[0].curie, self.intervention.curie)
 
     def test_edge(self):
         condition_edge = Edge(
