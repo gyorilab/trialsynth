@@ -27,5 +27,8 @@ jobs:
       - name: Install uv
         run: curl -fL --no-progress-meter --connect-timeout 15 --max-time 120 -- https://astral.sh/uv/install.sh | sh
 
+      - name: Download NLTK stopwords
+        run: python3 -c "import nltk; nltk.download('stopwords')"
+
       - name: Run tests
         run: uv run --group test -- pytest -v
