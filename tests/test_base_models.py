@@ -54,20 +54,19 @@ class TestBaseModels(unittest.TestCase):
         assert empty_node.curie == "test_ns:test_ns_id"
 
     def test_condition(self):
-        assert self.condition.curie == "mesh:D000086382"
-        assert set(self.condition.labels) == {"disease", "condition"}
+        self.assertEqual(self.condition.curie, "mesh:D000086382")
+        self.assertEqual(set(self.condition.labels), {"disease", "condition"})
 
     def test_intervention(self):
-        i1 = self.intervention
-        assert i1.curie == "ncit:C172787"
-        assert set(i1.labels) == {"vaccine", "intervention"}
+        self.assertEqual(self.intervention.curie, "ncit:C172787")
+        self.assertEqual(set(self.intervention.labels), {"vaccine", "intervention"})
 
     def test_trial_node(self):
         self.trial.entities = [self.intervention, self.condition]
-        assert len(self.trial.conditions) == 1
-        assert self.trial.interventions[0].curie == self.intervention.curie
-        assert len(self.trial.interventions) == 1
-        assert self.trial.conditions[0].curie == self.condition.curie
+        self.assertEqual(len(self.trial.conditions), 1)
+        self.assertEqual(self.trial.interventions[0].curie, self.intervention.curie)
+        self.assertEqual(len(self.trial.interventions), 1)
+        self.assertEqual(self.trial.conditions[0].curie, self.condition.curie)
 
     def test_edge(self):
         condition_edge = Edge(
@@ -75,15 +74,15 @@ class TestBaseModels(unittest.TestCase):
             entity=self.condition,
             source="test_source",
         )
-        assert condition_edge.trial.curie == self.trial.curie
-        assert condition_edge.entity.curie == self.condition.curie
-        assert condition_edge.rel_type == "has_condition"
+        self.assertEqual(condition_edge.trial.curie, self.trial.curie)
+        self.assertEqual(condition_edge.entity.curie, self.condition.curie)
+        self.assertEqual(condition_edge.rel_type, "has_condition")
 
         intervention_edge = Edge(
             trial=self.trial,
             entity=self.intervention,
             source="test_source",
         )
-        assert intervention_edge.trial.curie == self.trial.curie
-        assert intervention_edge.entity.curie == self.intervention.curie
-        assert intervention_edge.rel_type == "has_intervention"
+        self.assertEqual(intervention_edge.trial.curie, self.trial.curie)
+        self.assertEqual(intervention_edge.entity.curie, self.intervention.curie)
+        self.assertEqual(intervention_edge.rel_type, "has_intervention")
