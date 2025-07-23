@@ -1,4 +1,4 @@
-name: Test G.h subsystem
+name: Unit tests
 
 on:
   push:
