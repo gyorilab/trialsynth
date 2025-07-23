@@ -91,7 +91,7 @@ class CTFetcher(Fetcher):
         except requests.exceptions.Timeout:
             if retries > 0:
                 logger.warning(
-                    f'Retrying request to {self.url} with params {self.api_parameters}'
+                    f'Retrying request to {self.url} with params {self.api_parameters} '
                     f'due to timeout. Retries left: {retries - 1}'
                 )
                 sleep(5)  # Wait a bit before retrying
