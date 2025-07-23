@@ -53,6 +53,10 @@ class TestBaseModels(unittest.TestCase):
         assert empty_node.ns_id == "test_ns_id"
         assert empty_node.curie == "test_ns:test_ns_id"
 
+        # Test invalid curie assignment
+        with self.assertRaises(ValueError):
+            empty_node.curie = "invalid_curie_format"
+
     def test_condition(self):
         self.assertEqual(self.condition.curie, "mesh:D000086382")
         self.assertEqual(set(self.condition.labels), {"disease", "condition"})
