@@ -120,7 +120,7 @@ class Node:
     ----------
     ns : str
         The namespace of the node
-    id : str
+    ns_id : str
         The ID of the node
     labels : list[str]
         The labels of the node (default: []).
@@ -131,7 +131,7 @@ class Node:
     ----------
     ns : str
         The namespace of the node (default: None).
-    id : str
+    ns_id : str
         The ID of the node (default: None).
     """
 
@@ -218,8 +218,7 @@ class BioEntity(Node):
 
 
 class Condition(BioEntity):
-    """
-    Represents a condition.
+    """Represents a condition in a clinical trial
 
     Parameters
     ----------
