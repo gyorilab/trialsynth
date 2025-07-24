@@ -139,15 +139,15 @@ class Config:
                 f"may lead to unexpected results. Using the following fields:\n"
                 f"{self.api_fields}"
             )
-            if extra_in_default := api_fields - default_fields:
+            if extra_in_default := default_fields - api_fields:
                 logger.warning(
-                    f"The following fields are in the config but not in the default: "
-                    f"{', '.join(extra_in_default)}"
+                    f"The following API fields are in the default config but "
+                    f"not in the locally stored config: {', '.join(extra_in_default)}"
                 )
-            if extra_in_config := default_fields - api_fields:
+            if extra_in_config := api_fields - default_fields:
                 logger.warning(
-                    f"The following fields are in the default but not in the config: "
-                    f"{', '.join(extra_in_config)}"
+                    f"The following API fields are in the locally stored config but "
+                    f"not in the default config: {', '.join(extra_in_config)}"
                 )
 
 
