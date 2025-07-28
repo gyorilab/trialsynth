@@ -2,7 +2,6 @@ name: Unit tests
 
 on:
   push:
-    branches: [main]
     paths:
       - .github/workflows/stability_tests.yml
       - src/*
