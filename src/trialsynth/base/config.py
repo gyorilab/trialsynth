@@ -3,13 +3,44 @@ import os
 import shutil
 from configparser import RawConfigParser
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, Any
+from trialsynth.base.resources import DEFAULT_CONFIG_PATH
 
 logger = logging.getLogger(__name__)
 
 
+HOME_DIR = Path(os.path.expanduser("~"))
+
+
 class TrialSynthConfigError(Exception):
     pass
+
+
+def parse_config(registry_name: str, config_path: str | Path) -> dict[str, Any]:
+    config_dict = {}
+    parser = RawConfigParser()
+    parser.optionxform = lambda x: x
+    parser.read(config_path)
+    sections = parser.sections()
+
+    options = parser.options("trialsynth")
+    for option in options:
+        config_dict[option] = str(parser.get("trialsynth", option))
+
+    if registry_name not in sections:
+        raise ValueError(
+            f"Registry [{registry_name}] not found in configuration file."
+        )
+
+    options = parser.options(registry_name)
+    for option in options:
+        if option in config_dict:
+            logger.info(
+                "Overwriting package level configuration with registry level for option: "
+                + option
+            )
+        config_dict[option] = str(parser.get(registry_name, option))
+    return config_dict
 
 
 class Config:
@@ -91,6 +122,35 @@ class Config:
         root = logging.getLogger()
         root.setLevel(self.get_config("LOGGING_LEVEL"))
 
+        # Check if the API fields are the same ones as the ones in the default
+        # config, if not, log a warning
+        default_config_dict = parse_config(
+            registry_name=self.registry,
+            config_path=DEFAULT_CONFIG_PATH,
+        )
+        api_fields = {field for field in self.api_fields.split(",")}
+        default_fields = {
+            field.strip() for field in default_config_dict["API_FIELDS"].split(",")
+        }
+        if api_fields != default_fields:
+            logger.warning(
+                f"The API fields in the config for {self.registry} are different "
+                f"from the default config located at {DEFAULT_CONFIG_PATH}, this "
+                f"may lead to unexpected results. Using the following fields:\n"
+                f"{self.api_fields}"
+            )
+            if extra_in_default := default_fields - api_fields:
+                logger.warning(
+                    f"The following API fields are in the default config but "
+                    f"not in the locally stored config: {', '.join(extra_in_default)}"
+                )
+            if extra_in_config := api_fields - default_fields:
+                logger.warning(
+                    f"The following API fields are in the locally stored config but "
+                    f"not in the default config: {', '.join(extra_in_config)}"
+                )
+
+
     def _create_data_dir(self) -> Path:
         """Create the data directory if it doesn't exist
 
@@ -100,60 +160,30 @@ class Config:
             The path to the data directory
         """
 
-        home_dir = os.path.expanduser("~")
-        data_dir = os.path.join(home_dir, ".data", "trialsynth", self.registry)
+        data_dir = HOME_DIR / ".data" / "trialsynth" / self.registry
+        data_dir.mkdir(parents=True, exist_ok=True)
+        return data_dir
 
-        if not os.path.isdir(data_dir):
+    def _create_config_dict(self) -> Optional[Dict[str, Any]]:
+        """Load the configuration file into the config_file dictionary
+
+        Returns
+        -------
+        Optional[Dict[str, Any]]
+            A dictionary containing the configuration values. If the configuration
+            file cannot be loaded, None is returned.
+        """
+        config_dir = HOME_DIR / ".config" / "trialsynth" / self.registry
+        config_path = config_dir / "config.ini"
+        if not config_path.is_file():
+            config_dir.mkdir(parents=True, exist_ok=True)
             try:
-                os.makedirs(data_dir)
-            except Exception:
-                logger.warning(data_dir + " already exists")
-
-        return Path(data_dir)
-
-    def _create_config_dict(self) -> Optional[Dict[str, str]]:
-        """Load the configuration file into the config_file dictionary"""
-
-        home_dir = os.path.expanduser("~")
-        config_dir = os.path.join(home_dir, ".config", "trialsynth", self.registry)
-        config_path = os.path.join(config_dir, "config.ini")
-        default_config_path = os.path.join(
-            os.path.dirname(__file__), "resources/default_config.ini"
-        )
-        if not os.path.isfile(config_path):
-            try:
-                os.makedirs(config_dir)
-            except Exception:
-                logger.warning(config_dir + " already exists")
-            try:
-                shutil.copyfile(default_config_path, config_path)
+                shutil.copyfile(DEFAULT_CONFIG_PATH, config_path)
             except Exception:
                 logger.warning("Could not copy default config file.")
 
         try:
-            config_dict = {}
-            parser = RawConfigParser()
-            parser.optionxform = lambda x: x
-            parser.read(config_path)
-            sections = parser.sections()
-
-            options = parser.options("trialsynth")
-            for option in options:
-                config_dict[option] = str(parser.get("trialsynth", option))
-
-            if self.registry in sections:
-                options = parser.options(self.registry)
-                for option in options:
-                    if option in config_dict:
-                        logger.info(
-                            "Overwriting package level configuration with registry level for option: "
-                            + option
-                        )
-                    config_dict[option] = str(parser.get(self.registry, option))
-            else:
-                raise ValueError(
-                    f"Registry [{self.registry}] not found in configuration file."
-                )
+            config_dict = parse_config(self.registry, config_path)
 
         except Exception:
             logger.warning(
