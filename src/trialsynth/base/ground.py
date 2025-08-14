@@ -27,7 +27,7 @@ GrounderSignature = Callable[
     [str, Optional[str], Optional[list[str]], Optional[list[str]]],
     list[ScoredMatch]
 ]
-AnnotatorSignature = Callable[[str, Optional[str]], list[Annotation]]
+AnnotatorSignature = Optional[Callable[[str, Optional[str]], list[Annotation]]]
 
 
 class Annotator:
