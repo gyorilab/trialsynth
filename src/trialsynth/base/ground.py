@@ -60,8 +60,20 @@ class Annotator:
 
 
 class GildaAnnotator(Annotator):
+    def __init__(
+        self,
+        *,
+        namespaces: Optional[list[str]] = None,
+        mesh_prefix: Optional[Literal["mesh", "MESH"]] = "MESH"
+    ):
+        if namespaces is None:
+            logger.info("No namespaces provided, using default Gilda namespaces.")
+            namespaces = gilda.grounder.DEFAULT_NAMESPACE_PRIORITY
+        super().__init__(namespaces=namespaces, mesh_prefix=mesh_prefix)
     def annotate(self, text: str, *, context: str = None):
-        return gilda.annotate(text=text, context_text=context, namespaces=self.namespaces)
+        return gilda.annotate(
+            text=text, context_text=context, namespaces=self.namespaces
+        )
 
 
 class SciSpacyAnnotator(Annotator):
