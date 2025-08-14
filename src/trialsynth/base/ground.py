@@ -253,7 +253,7 @@ class ConditionGrounder(Grounder):
         namespaces: Optional[list[str]] = None,
         annotator: Optional[AnnotatorSignature] = None,
         grounder_func: Optional[GrounderSignature] = None,
-        mesh_prefix: Optional[Literal["mesh", "MESH"]] = "MESH"
+        mesh_prefix: Literal["mesh", "MESH"] = "MESH"
     ):
         if namespaces is None:
             namespaces = CONDITION_NS
