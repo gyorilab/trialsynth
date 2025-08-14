@@ -138,12 +138,14 @@ class Grounder:
         *,
         namespaces: Optional[list[str]] = None,
         restrict_mesh_prefix: list[str] = None,
-        annotator: AnnotatorSignature = GildaAnnotator(),
+        annotator: AnnotatorSignature = None,
         grounder_func: Optional[GrounderSignature] = None,
         mesh_prefix: Optional[Literal["mesh", "MESH"]] = "MESH"
     ):
         self.namespaces: Optional[list[str]] = namespaces
         self.restrict_mesh_prefix = restrict_mesh_prefix
+        if annotator is None:
+            annotator = GildaAnnotator(namespaces=namespaces, mesh_prefix=mesh_prefix)
         self.annotator = annotator
         if grounder_func is None:
             grounder_func = gilda.ground
