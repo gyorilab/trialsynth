@@ -187,10 +187,9 @@ class Grounder:
     def _yield_entity(
         self, entity: BioEntity, match: ScoredMatch
     ) -> Iterator[BioEntity]:
-        groundings_dict = dict(match.get_groundings())
-        mesh_id = groundings_dict.get(self.mesh_prefix)
-
-        if mesh_id:
+        # Do special handling for MESH entities
+        if match.term.db == self.mesh_prefix:
+            mesh_id = match.term.id
             if self.restrict_mesh_prefix and any(mesh_client.has_tree_prefix(mesh_id, prefix) for prefix in self.restrict_mesh_prefix):
                 yield self._create_grounded_entity(
                     entity, db_ns=self.mesh_prefix, db_id=mesh_id, norm_text=match.term.entry_name
