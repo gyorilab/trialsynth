@@ -39,7 +39,7 @@ class Transformer:
             trial.source,
             self.transform_phases(trial.phases),
             trial.start_date.year if trial.start_date else "",
-            self.tranform_anticipated_date(trial),
+            self.transform_estimated_date(trial),
             trial.primary_completion_date.year if trial.primary_completion_date else "",
             trial.primary_completion_date_type or "",
             trial.completion_date.year if trial.completion_date else "",
@@ -51,9 +51,11 @@ class Transformer:
         )
 
     @staticmethod
-    def tranform_anticipated_date(trial: Trial) -> str:
+    def transform_estimated_date(trial: Trial) -> str:
+        # See:
+        # https://clinicaltrials.gov/data-api/about-api/study-data-structure#enum-DateType
         if trial.start_date_type is not None:
-            if trial.start_date_type.lower() == "anticipated":
+            if trial.start_date_type.lower() == "estimated":
                 return "true"
             else:
                 return "false"
