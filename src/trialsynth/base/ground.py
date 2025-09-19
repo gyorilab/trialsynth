@@ -18,8 +18,6 @@ from .util import (
     must_override
 )
 
-import spacy
-
 logger = logging.getLogger(__name__)
 
 
@@ -76,27 +74,6 @@ class GildaAnnotator(Annotator):
         )
 
 
-class SciSpacyAnnotator(Annotator):
-    def __init__(self, *, model: str, namespaces: Optional[list[str]] = None):
-        super().__init__(namespaces=namespaces)
-        try:
-            self.model = spacy.load(model)
-        except OSError:
-            logger.info("spaCy model not found")
-            raise
-
-    def annotate(self, text: str, *, context: str = None):
-        context_text = context if context is not None else text
-        doc = self.model(text)
-
-        annotations: list[Annotation] = []
-        for entity in doc.ents:
-            matches = gilda.ground(entity.text, namespaces=self.namespaces, context=context_text)
-            if matches:
-                annotations.append(
-                    Annotation(entity.text, matches, entity.start_char, entity.end_char)
-                )
-            return annotations
 
 
 class Grounder:
