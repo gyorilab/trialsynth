@@ -27,7 +27,7 @@ dependencies = [
   "bioregistry (~=0.11.6)",
   "click (~=8.1)",
   "gilda (~=1.1)",
-  "indra @ git+https://github.com/sorgerlab/indra.git",
+  "indra @ git+https://github.com/gyorilab/indra.git",
   "numpy (~=1.26)",  # https://github.com/allenai/scispacy/issues/536
   "overrides (~=7.7)",
   "pandas (~=2.2)",
