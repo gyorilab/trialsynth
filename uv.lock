@@ -76,20 +76,20 @@ wheels = [
 
 [[package]]
 name = "bioregistry"
-version = "0.11.35"
+version = "0.12.39"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "curies" },
     { name = "more-click" },
-    { name = "pydantic" },
+    { name = "pydantic", extra = ["email"] },
     { name = "pystow" },
     { name = "requests" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d9/f2/f1e162bda13c762fa8ac2b20139af61181cf8c0aee70fb1ebf380f280829/bioregistry-0.11.35.tar.gz", hash = "sha256:f3c57638c193161674f3569312dd6c3a3f99ace862a5c8e0c7986c06e30815d0", size = 6119956, upload-time = "2025-01-28T09:40:56.726Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/36/87/cc29537841df02603631a7abb9d8776d08ff33b958485a7e7aa41d5fee29/bioregistry-0.12.39.tar.gz", hash = "sha256:c9b9a80a6799e2535b5d4f55b891f6f1ffee1a1e5fd92cd85f03c0d678dade81", size = 6372981, upload-time = "2025-09-13T02:28:37.577Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b3/ab/8441327ba6f941519b33209736783e9b733f2532dbdfcdaa7feee828b910/bioregistry-0.11.35-py3-none-any.whl", hash = "sha256:64713a6595190175d506f2053b1599707a8cf266a2ba44cff3c2e29b71063f90", size = 5303598, upload-time = "2025-01-28T09:40:49.538Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/ac/3edf6413e4ad2d4972e4298388fb3cd6461b976832154f94a911d4ecebbe/bioregistry-0.12.39-py3-none-any.whl", hash = "sha256:0647bac117672dee9719ff68002ffd5ce37950ed42ed24917a6229f0d3a59f7b", size = 5562191, upload-time = "2025-09-13T02:28:34.397Z" },
 ]
 
 [[package]]
@@ -1566,7 +1566,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/6d/f5/59f3375b12172651c
 
 [[package]]
 name = "pystow"
-version = "0.7.1"
+version = "0.7.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -1574,9 +1574,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1d/40/cec250d2bde19dfc935bad48db07687056defdb4da5f753c70d5ea3bdb7c/pystow-0.7.1.tar.gz", hash = "sha256:ad0605f378b1b9ea0e57feb0f198df25717ee9d29596a643a8d00492e21cd62a", size = 36443, upload-time = "2025-06-23T11:33:10.347Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/31/f2/02211684655aa52b10d95376ef63b4f09638fa28acbbf7c2d1f49e0c9ddb/pystow-0.7.8.tar.gz", hash = "sha256:f19c861537f041a91c21ffeed007802a5ced43c133705f473b450c866218a3d6", size = 40078, upload-time = "2025-08-27T13:34:08.701Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/08/cb/9799961c56349b7439d24627545eeb091423594722405881babd0824326e/pystow-0.7.1-py3-none-any.whl", hash = "sha256:ea5b08f670a9126e368f719b29c02414a7480c13c30efec03d5cdfa69fb929f6", size = 39386, upload-time = "2025-06-23T11:33:07.418Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/fb/e2027b4d1093ac980a26aa81023582e61604648932d0cd634a6ca96ac3bb/pystow-0.7.8-py3-none-any.whl", hash = "sha256:2524bc2377afb08590e2417571adb9507de55b6d60b628b4c02ff69a9b8dfba8", size = 43282, upload-time = "2025-08-27T13:34:07.504Z" },
 ]
 
 [[package]]
@@ -2365,7 +2365,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "addict", specifier = "~=2.4" },
-    { name = "bioregistry", specifier = "~=0.11.6" },
+    { name = "bioregistry", specifier = "~=0.12.13" },
     { name = "click", specifier = "~=8.1" },
     { name = "gilda", specifier = "~=1.1" },
     { name = "indra", git = "https://github.com/gyorilab/indra.git" },
