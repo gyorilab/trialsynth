@@ -18,8 +18,6 @@ from .util import (
     must_override
 )
 
-import spacy
-
 logger = logging.getLogger(__name__)
 
 
@@ -27,7 +25,7 @@ GrounderSignature = Callable[
     [str, Optional[str], Optional[list[str]], Optional[list[str]]],
     list[ScoredMatch]
 ]
-AnnotatorSignature = Callable[[str, Optional[str]], list[Annotation]]
+AnnotatorSignature = Optional[Callable[[str, Optional[str]], list[Annotation]]]
 
 
 class Annotator:
@@ -60,31 +58,22 @@ class Annotator:
 
 
 class GildaAnnotator(Annotator):
+    def __init__(
+        self,
+        *,
+        namespaces: Optional[list[str]] = None,
+        mesh_prefix: Optional[Literal["mesh", "MESH"]] = "MESH"
+    ):
+        if namespaces is None:
+            logger.info("No namespaces provided, using default Gilda namespaces.")
+            namespaces = gilda.grounder.DEFAULT_NAMESPACE_PRIORITY
+        super().__init__(namespaces=namespaces, mesh_prefix=mesh_prefix)
     def annotate(self, text: str, *, context: str = None):
-        return gilda.annotate(text=text, context_text=context, namespaces=self.namespaces)
+        return gilda.annotate(
+            text=text, context_text=context, namespaces=self.namespaces
+        )
 
 
-class SciSpacyAnnotator(Annotator):
-    def __init__(self, *, model: str, namespaces: Optional[list[str]] = None):
-        super().__init__(namespaces=namespaces)
-        try:
-            self.model = spacy.load(model)
-        except OSError:
-            logger.info("spaCy model not found")
-            raise
-
-    def annotate(self, text: str, *, context: str = None):
-        context_text = context if context is not None else text
-        doc = self.model(text)
-
-        annotations: list[Annotation] = []
-        for entity in doc.ents:
-            matches = gilda.ground(entity.text, namespaces=self.namespaces, context=context_text)
-            if matches:
-                annotations.append(
-                    Annotation(entity.text, matches, entity.start_char, entity.end_char)
-                )
-            return annotations
 
 
 class Grounder:
@@ -126,12 +115,14 @@ class Grounder:
         *,
         namespaces: Optional[list[str]] = None,
         restrict_mesh_prefix: list[str] = None,
-        annotator: AnnotatorSignature = GildaAnnotator(),
+        annotator: AnnotatorSignature = None,
         grounder_func: Optional[GrounderSignature] = None,
         mesh_prefix: Optional[Literal["mesh", "MESH"]] = "MESH"
     ):
         self.namespaces: Optional[list[str]] = namespaces
         self.restrict_mesh_prefix = restrict_mesh_prefix
+        if annotator is None:
+            annotator = GildaAnnotator(namespaces=namespaces, mesh_prefix=mesh_prefix)
         self.annotator = annotator
         if grounder_func is None:
             grounder_func = gilda.ground
@@ -173,10 +164,9 @@ class Grounder:
     def _yield_entity(
         self, entity: BioEntity, match: ScoredMatch
     ) -> Iterator[BioEntity]:
-        groundings_dict = dict(match.get_groundings())
-        mesh_id = groundings_dict.get(self.mesh_prefix)
-
-        if mesh_id:
+        # Do special handling for MESH entities
+        if match.term.db == self.mesh_prefix:
+            mesh_id = match.term.id
             if self.restrict_mesh_prefix and any(mesh_client.has_tree_prefix(mesh_id, prefix) for prefix in self.restrict_mesh_prefix):
                 yield self._create_grounded_entity(
                     entity, db_ns=self.mesh_prefix, db_id=mesh_id, norm_text=match.term.entry_name
@@ -240,7 +230,7 @@ class ConditionGrounder(Grounder):
         namespaces: Optional[list[str]] = None,
         annotator: Optional[AnnotatorSignature] = None,
         grounder_func: Optional[GrounderSignature] = None,
-        mesh_prefix: Optional[Literal["mesh", "MESH"]] = "MESH"
+        mesh_prefix: Literal["mesh", "MESH"] = "MESH"
     ):
         if namespaces is None:
             namespaces = CONDITION_NS
