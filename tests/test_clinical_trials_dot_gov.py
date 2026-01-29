@@ -4,7 +4,7 @@ import pytest
 import tempfile
 from pydantic import ValidationError
 
-from trialsynth.clinical_trials_dot_gov import config, fetch, process
+from trialsynth.ctgov import config, fetch, process
 
 DOCKERIZED = os.environ.get("DOCKERIZED", False)
 
