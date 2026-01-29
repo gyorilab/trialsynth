@@ -4,35 +4,35 @@ Trialsynth modules reference
 ClinicalTrials.gov
 ------------------
 
-.. automodule:: trial_synth.clinical_trials_dot_gov.config
+.. automodule:: trial_synth.ctgov.config
     :members:
     :show-inheritance:
 
-.. automodule:: trial_synth.clinical_trials_dot_gov.fetch
+.. automodule:: trial_synth.ctgov.fetch
     :members:
     :show-inheritance:
 
-.. automodule:: trial_synth.clinical_trials_dot_gov.process
+.. automodule:: trial_synth.ctgov.process
     :members:
     :show-inheritance:
 
-.. automodule:: trial_synth.clinical_trials_dot_gov.rest_api_response_models
+.. automodule:: trial_synth.ctgov.rest_api_response_models
     :members:
     :show-inheritance:
 
-.. automodule:: trial_synth.clinical_trials_dot_gov.store
+.. automodule:: trial_synth.ctgov.store
     :members:
     :show-inheritance:
 
-.. automodule:: trial_synth.clinical_trials_dot_gov.transform
+.. automodule:: trial_synth.ctgov.transform
     :members:
     :show-inheritance:
 
-.. automodule:: trial_synth.clinical_trials_dot_gov.util
+.. automodule:: trial_synth.ctgov.util
     :members:
     :show-inheritance:
 
-.. automodule:: trial_synth.clinical_trials_dot_gov.validate
+.. automodule:: trial_synth.ctgov.validate
     :members:
     :show-inheritance:
 
