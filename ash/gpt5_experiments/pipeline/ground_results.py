@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import gilda
+import pystow
 
 logger = logging.getLogger(__name__)
 
@@ -165,8 +166,8 @@ def ground_json(input_path: Path, output_path: Path) -> None:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input-dir", type=Path, default=Path("D:/CS/GyoriLabs/trialsynth/ash/gpt5_experiments/dataset_intersection/raw_anchor"))
-    parser.add_argument("--output-dir", type=Path, default=Path("D:/CS/GyoriLabs/trialsynth/ash/gpt5_experiments/dataset_intersection/grounded_anchor_genetic"))
+    parser.add_argument("--input-dir", type=Path, default=pystow.module("indra", "cogex", "clinical_trial_results", "raw").base)
+    parser.add_argument("--output-dir", type=Path, default=pystow.module("indra", "cogex", "clinical_trial_results", "grounded").base)
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)

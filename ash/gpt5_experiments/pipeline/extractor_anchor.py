@@ -9,8 +9,11 @@ import argparse
 import csv
 import json
 import logging
+import re
 from difflib import SequenceMatcher
 from pathlib import Path
+
+import pystow
 from openai import OpenAI
 
 logger = logging.getLogger(__name__)
@@ -354,20 +357,14 @@ def main():
     parser.add_argument("--output-dir", default=None, help="Override output directory")
     args = parser.parse_args()
 
-    base_path = Path("D:/CS/GyoriLabs/trialsynth/ash")
-    content_dir = base_path / "production_pipeline" / "content" / "txt"
-    data_dir = base_path / "gpt5_experiments" / "dataset_reference_32"
-
-    if args.output_dir:
-        output_dir = Path(args.output_dir)
-    else:
-        output_dir = data_dir / "results_anchor"
+    content_dir = pystow.module("trialsynth", "content", "txt").base
+    output_dir = Path(args.output_dir) if args.output_dir else pystow.module("indra", "cogex", "clinical_trial_results", "raw").base
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if args.pmids:
         target_pmids = args.pmids
     else:
-        grounded_dir = data_dir / "grounded_results"
+        grounded_dir = pystow.module("indra", "cogex", "clinical_trial_results", "grounded").base
         target_pmids = [f.stem for f in sorted(grounded_dir.glob("*.json"))][:10]
 
     logger.info(f"Running anchor extraction on {len(target_pmids)} PMIDs...")
@@ -394,7 +391,7 @@ def main():
     logger.info("=" * 60)
 
     # Save CSV
-    csv_path = data_dir / "token_comparison_anchor.csv"
+    csv_path = pystow.module("indra", "cogex", "clinical_trial_results").base / "token_comparison_anchor.csv"
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["pmid", "status", "input_tokens", "output_tokens"])
         writer.writeheader()

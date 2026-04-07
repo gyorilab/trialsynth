@@ -14,7 +14,6 @@ Re-running safely resumes from wherever it left off.
 Output: ash/gpt5_experiments/dataset_intersection/raw_anchor/
 """
 
-import sys
 import csv
 import gzip
 import logging
@@ -22,26 +21,21 @@ import os
 import pickle
 import shutil
 import subprocess
+import sys
 import tarfile
 import argparse
 from pathlib import Path
 
+import pystow
 import requests
 from openai import OpenAI
 
-base_dir = Path("D:/CS/GyoriLabs/trialsynth/ash")
-src_path = Path("D:/CS/GyoriLabs/trialsynth/src")
-sys.path.append(str(src_path))
-
-pipeline_dir = Path(__file__).parent
-sys.path.insert(0, str(pipeline_dir))
 from extractor_anchor import process_pmid
 
-output_root = base_dir / "gpt5_experiments" / "dataset_intersection"
-output_dir  = output_root / "raw_anchor"
-txt_archive = base_dir / "production_pipeline" / "content" / "txt"
-pdf_archive = base_dir / "production_pipeline" / "content" / "pdfs"
-temp_work   = base_dir / "production_pipeline" / "temp_work"
+output_dir  = pystow.module("indra", "cogex", "clinical_trial_results", "raw").base
+txt_archive = pystow.module("trialsynth", "content", "txt").base
+pdf_archive = pystow.module("trialsynth", "content", "pdfs").base
+temp_work   = pystow.module("trialsynth", "content", "temp").base
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +44,8 @@ from indra.literature.pubmed_client import get_pmid_to_package_url_mapping, get_
 
 def get_intersection_pmids(limit: int = None) -> list[str]:
     """Return intersection PMIDs (registry RESULT links ∩ PubMed scan), up to `limit`."""
-    pkl_path = Path.home() / ".data" / "trialsynth" / "clinicaltrials" / "clinicaltrials.pkl.gz"
-    csv_path = base_dir / "link_discovery" / "output" / "pubmed_nct_links.csv"
+    pkl_path = pystow.module("trialsynth", "clinicaltrials").base / "clinicaltrials.pkl.gz"
+    csv_path = pystow.module("trialsynth", "link_discovery").base / "pubmed_nct_links.csv"
 
     logger.info("Loading registry result links...")
     registry_result_links = set()
@@ -97,7 +91,7 @@ def download_file(url: str, dest: Path) -> bool:
 def download_texts(pmids: list[str]):
     logger.info(f"Downloading text for {len(pmids)} PMIDs...")
     mappings = get_pmid_to_package_url_mapping()
-    extractor_util = src_path / "trialsynth" / "base" / "extract" / "extract.py"
+    extractor_util = Path(__file__).parent / "extract.py"
 
     for i, pmid in enumerate(pmids):
         if (txt_archive / f"{pmid}.txt").exists():
@@ -182,7 +176,7 @@ def run_extraction(pmids: list[str]):
         total_out = sum(r["output_tokens"] for r in completed)
         logger.info(f"Avg output tokens/paper: {total_out // len(completed)}")
 
-    csv_path = output_root / "extraction_stats.csv"
+    csv_path = pystow.module("indra", "cogex", "clinical_trial_results").base / "extraction_stats.csv"
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["pmid", "status", "input_tokens", "output_tokens"])
         writer.writeheader()
@@ -195,7 +189,7 @@ def main():
     parser.add_argument("--limit", type=int, default=1000, help="Max PMIDs to process (default: 1000)")
     args = parser.parse_args()
 
-    pmids_path = output_root / "intersection_pmids.txt"
+    pmids_path = pystow.module("indra", "cogex", "clinical_trial_results").base / "intersection_pmids.txt"
 
     if pmids_path.exists():
         with open(pmids_path, "r") as f:
@@ -213,7 +207,7 @@ def main():
                 f.write(pmid + "\n")
         logger.info(f"Saved {len(pmids)} PMIDs to {pmids_path}")
 
-    for d in [output_root, output_dir, txt_archive, pdf_archive, temp_work]:
+    for d in [output_dir, txt_archive, pdf_archive, temp_work]:
         d.mkdir(parents=True, exist_ok=True)
 
     download_texts(pmids)
