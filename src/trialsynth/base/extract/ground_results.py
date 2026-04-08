@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 import gilda
 import pystow
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('trialsynth.base.extract.ground_results')
 
 
 def get_gilda_grounding(text: str, sources: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
@@ -163,9 +163,9 @@ def ground_json(input_path: Path, output_path: Path) -> None:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input-dir", type=Path,
-                        default=pystow.module("indra", "cogex", "clinical_trial_results", "raw").base)
+                        default=pystow.join("trialsynth", "results", "raw"))
     parser.add_argument("--output-dir", type=Path,
-                        default=pystow.module("indra", "cogex", "clinical_trial_results", "grounded").base)
+                        default=pystow.join("trialsynth", "results", "grounded"))
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -183,5 +183,4 @@ def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     main()

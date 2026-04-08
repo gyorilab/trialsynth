@@ -32,7 +32,7 @@ from indra.literature.pubmed_client import get_pmid_to_package_url_mapping, get_
 
 from trialsynth.base.extract.extract import process_pmid
 
-output_dir  = pystow.module("indra", "cogex", "clinical_trial_results", "raw")
+output_dir  = pystow.module("trialsynth", "results", "raw")
 txt_archive = pystow.module("trialsynth", "content", "txt")
 pdf_archive = pystow.module("trialsynth", "content", "pdfs")
 temp_work   = pystow.module("trialsynth", "content", "temp")
@@ -168,7 +168,7 @@ def run_extraction(pmids: list[str]):
         total_out = sum(r["output_tokens"] for r in stats if r["status"] == "completed")
         logger.info(f"Avg output tokens/paper: {total_out // statuses['completed']}")
 
-    csv_path = pystow.module("indra", "cogex", "clinical_trial_results").base / "extraction_stats.csv"
+    csv_path = pystow.join("trialsynth", "results", name="extraction_stats.csv")
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["pmid", "status", "input_tokens", "output_tokens"])
         writer.writeheader()
@@ -182,8 +182,7 @@ def main():
                         help="Max PMIDs to process (default: 1000)")
     args = parser.parse_args()
 
-    pmids_path = pystow.join("indra", "cogex", "clinical_trial_results",
-                             name="intersection_pmids.txt")
+    pmids_path = pystow.join("trialsynth", "results", name="intersection_pmids.txt")
 
     if pmids_path.exists():
         with open(pmids_path, "r") as f:

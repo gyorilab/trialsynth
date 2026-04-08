@@ -358,13 +358,13 @@ def main():
 
     content_dir = pystow.module("trialsynth", "content", "txt").base
     output_dir = Path(args.output_dir) if args.output_dir else \
-        pystow.module("indra", "cogex", "clinical_trial_results", "raw").base
+        pystow.join("trialsynth", "results", "raw")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if args.pmids:
         target_pmids = args.pmids
     else:
-        grounded_dir = pystow.module("indra", "cogex", "clinical_trial_results", "grounded").base
+        grounded_dir = pystow.join("trialsynth", "results", "grounded")
         target_pmids = [f.stem for f in sorted(grounded_dir.glob("*.json"))][:10]
 
     logger.info(f"Running anchor extraction on {len(target_pmids)} PMIDs...")
@@ -389,8 +389,7 @@ def main():
     logger.info(f"{'AVG/paper':<15} {total_in // max(1, len(completed)):>15} {total_out // max(1, len(completed)):>15}")
     logger.info("=" * 60)
 
-    csv_path = pystow.join("indra", "cogex", "clinical_trial_results",
-                           name="token_comparison_anchor.csv")
+    csv_path = pystow.join("trialsynth", "results", name="token_comparison_anchor.csv")
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["pmid", "status", "input_tokens", "output_tokens"])
         writer.writeheader()
