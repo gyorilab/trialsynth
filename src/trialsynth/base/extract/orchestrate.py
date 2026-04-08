@@ -26,6 +26,7 @@ import pystow
 import requests
 from openai import OpenAI
 from pypdf import PdfReader
+from indra.literature.pubmed_client import get_pmid_to_package_url_mapping, get_abstract
 
 from trialsynth.base.extract.extract import process_pmid
 
@@ -36,7 +37,6 @@ temp_work   = pystow.module("trialsynth", "content", "temp").base
 
 logger = logging.getLogger(__name__)
 
-from indra.literature.pubmed_client import get_pmid_to_package_url_mapping, get_abstract
 
 
 def get_intersection_pmids(limit: int = None) -> list[str]:
