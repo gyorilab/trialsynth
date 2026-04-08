@@ -20,8 +20,10 @@ import pickle
 import shutil
 import tarfile
 import argparse
+from collections import Counter
 from pathlib import Path
 
+import tqdm
 import pystow
 import requests
 from openai import OpenAI
@@ -30,19 +32,18 @@ from indra.literature.pubmed_client import get_pmid_to_package_url_mapping, get_
 
 from trialsynth.base.extract.extract import process_pmid
 
-output_dir  = pystow.module("indra", "cogex", "clinical_trial_results", "raw").base
-txt_archive = pystow.module("trialsynth", "content", "txt").base
-pdf_archive = pystow.module("trialsynth", "content", "pdfs").base
-temp_work   = pystow.module("trialsynth", "content", "temp").base
+output_dir  = pystow.module("indra", "cogex", "clinical_trial_results", "raw")
+txt_archive = pystow.module("trialsynth", "content", "txt")
+pdf_archive = pystow.module("trialsynth", "content", "pdfs")
+temp_work   = pystow.module("trialsynth", "content", "temp")
+trial_pkl_path = pystow.join("trialsynth", "clinicaltrials", name="clinicaltrials.pkl.gz")
+pubmed_nct_links_path = pystow.join("trialsynth", "clinicaltrials", name="pubmed_nct_links.csv")
 
-logger = logging.getLogger(__name__)
-
+logger = logging.getLogger('trialsynth.base.extract.orchestrate')
 
 
 def get_intersection_pmids(limit: int = None) -> list[str]:
     """Return intersection PMIDs (registry RESULT links intersect PubMed scan), up to `limit`."""
-    pkl_path = pystow.module("trialsynth", "clinicaltrials").base / "clinicaltrials.pkl.gz"
-    csv_path = pystow.module("trialsynth", "link_discovery").base / "pubmed_nct_links.csv"
 
     logger.info("Loading registry result links...")
     registry_result_links = set()
@@ -89,9 +90,8 @@ def download_texts(pmids: list[str]):
     logger.info(f"Downloading text for {len(pmids)} PMIDs...")
     mappings = get_pmid_to_package_url_mapping()
 
-    for i, pmid in enumerate(pmids):
-        if (txt_archive / f"{pmid}.txt").exists():
-            logger.info(f"[{i+1}/{len(pmids)}] {pmid} already cached.")
+    for pmid in tqdm.tqdm(pmids):
+        if txt_archive.join(name=f"{pmid}.txt").exists():
             continue
 
         for item in temp_work.glob("*"):
@@ -106,15 +106,15 @@ def download_texts(pmids: list[str]):
             package_url = mappings.get(pmid)
 
             if package_url:
-                pkg_path = temp_work / f"temp_{pmid}.tar.gz"
+                pkg_path = temp_work.join(name=f"temp_{pmid}.tar.gz")
                 if download_file(package_url, pkg_path):
-                    extract_path = temp_work / f"extract_{pmid}"
+                    extract_path = temp_work.join(f"extract_{pmid}")
                     try:
                         with tarfile.open(pkg_path, "r:gz") as tar:
                             tar.extractall(path=extract_path)
                         pdfs = list(extract_path.rglob("*.pdf"))
                         if pdfs:
-                            shutil.move(str(pdfs[0]), str(temp_work / f"{pmid}.pdf"))
+                            shutil.move(str(pdfs[0]), temp_work.join(name=f"{pmid}.pdf").as_posix())
                             localized = True
                             source = "PMC"
                     except Exception:
@@ -123,24 +123,25 @@ def download_texts(pmids: list[str]):
             if not localized:
                 abstract = get_abstract(pmid, prepend_title=True)
                 if abstract:
-                    with open(txt_archive / f"{pmid}.txt", "w", encoding="utf-8") as f:
+                    with open(txt_archive.join(name=f"{pmid}.txt"), "w", encoding="utf-8") as f:
                         f.write(abstract)
                     localized = True
                     source = "ABS"
 
             if localized:
                 if source == "PMC":
-                    pdf_file = temp_work / f"{pmid}.pdf"
+                    pdf_file = temp_work.join(name=f"{pmid}.pdf")
                     reader = PdfReader(pdf_file)
                     text = "\n".join(page.extract_text() for page in reader.pages)
-                    (txt_archive / f"{pmid}.txt").write_text(text, encoding="utf-8")
-                    shutil.move(str(pdf_file), str(pdf_archive / pdf_file.name))
-                logger.info(f"[{i+1}/{len(pmids)}] {pmid} ({source}) - OK")
+                    txt_archive.join(name=f"{pmid}.txt").write_text(text, encoding="utf-8")
+                    shutil.move(pdf_file.as_posix(),
+                                pdf_archive.join(name=pdf_file.name).as_posix())
+                logger.info(f"{pmid} ({source}) - OK")
             else:
-                logger.warning(f"[{i+1}/{len(pmids)}] {pmid} - NO CONTENT")
+                logger.info(f"{pmid} - NO CONTENT")
 
         except Exception as e:
-            logger.error(f"[{i+1}/{len(pmids)}] {pmid} - FAILED: {e}")
+            logger.info(f"[{pmid} - FAILED: {e}")
 
 
 def run_extraction(pmids: list[str]):
@@ -158,15 +159,14 @@ def run_extraction(pmids: list[str]):
         else:
             logger.warning(f"  {pmid} -> {row['status']}")
 
-    completed = [r for r in stats if r["status"] == "ok"]
-    skipped   = sum(1 for r in stats if r["status"] == "skipped")
-    missing   = sum(1 for r in stats if r["status"] == "missing_text")
-    errors    = sum(1 for r in stats if r["status"] not in ("ok", "skipped", "missing_text"))
+    statuses = Counter(r["status"] for r in stats)
 
-    logger.info(f"Extraction complete: {len(completed)} new, {skipped} skipped, {missing} missing text, {errors} errors")
-    if completed:
-        total_out = sum(r["output_tokens"] for r in completed)
-        logger.info(f"Avg output tokens/paper: {total_out // len(completed)}")
+    logger.info(f"Extraction complete: {statuses['ok']} new, {statuses['skipped']} "
+                f"skipped, {statuses['missing_text']} missing text, "
+                f"{len(statuses) - statuses['ok'] - statuses['skipped'] - statuses['missing_text']} errors")
+    if statuses.get('completed'):
+        total_out = sum(r["output_tokens"] for r in stats if r["status"] == "completed")
+        logger.info(f"Avg output tokens/paper: {total_out // statuses['completed']}")
 
     csv_path = pystow.module("indra", "cogex", "clinical_trial_results").base / "extraction_stats.csv"
     with open(csv_path, "w", newline="") as f:
@@ -178,10 +178,12 @@ def run_extraction(pmids: list[str]):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--limit", type=int, default=1000, help="Max PMIDs to process (default: 1000)")
+    parser.add_argument("--limit", type=int, default=1000,
+                        help="Max PMIDs to process (default: 1000)")
     args = parser.parse_args()
 
-    pmids_path = pystow.module("indra", "cogex", "clinical_trial_results").base / "intersection_pmids.txt"
+    pmids_path = pystow.join("indra", "cogex", "clinical_trial_results",
+                             name="intersection_pmids.txt")
 
     if pmids_path.exists():
         with open(pmids_path, "r") as f:
@@ -199,13 +201,9 @@ def main():
                 f.write(pmid + "\n")
         logger.info(f"Saved {len(pmids)} PMIDs to {pmids_path}")
 
-    for d in [output_dir, txt_archive, pdf_archive, temp_work]:
-        d.mkdir(parents=True, exist_ok=True)
-
     download_texts(pmids)
     run_extraction(pmids)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     main()

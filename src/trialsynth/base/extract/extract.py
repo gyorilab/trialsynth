@@ -19,7 +19,7 @@ from pathlib import Path
 import pystow
 from openai import OpenAI
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('trialsynth.base.extract.extract')
 
 LLM_MODEL = "gpt-5.4-mini"
 
@@ -357,7 +357,8 @@ def main():
     args = parser.parse_args()
 
     content_dir = pystow.module("trialsynth", "content", "txt").base
-    output_dir = Path(args.output_dir) if args.output_dir else pystow.module("indra", "cogex", "clinical_trial_results", "raw").base
+    output_dir = Path(args.output_dir) if args.output_dir else \
+        pystow.module("indra", "cogex", "clinical_trial_results", "raw").base
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if args.pmids:
@@ -388,7 +389,8 @@ def main():
     logger.info(f"{'AVG/paper':<15} {total_in // max(1, len(completed)):>15} {total_out // max(1, len(completed)):>15}")
     logger.info("=" * 60)
 
-    csv_path = pystow.module("indra", "cogex", "clinical_trial_results").base / "token_comparison_anchor.csv"
+    csv_path = pystow.join("indra", "cogex", "clinical_trial_results",
+                           name="token_comparison_anchor.csv")
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["pmid", "status", "input_tokens", "output_tokens"])
         writer.writeheader()
@@ -397,5 +399,4 @@ def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     main()
