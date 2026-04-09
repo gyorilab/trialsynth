@@ -32,10 +32,10 @@ from indra.literature.pubmed_client import get_pmid_to_package_url_mapping, get_
 
 from trialsynth.base.extract.extract import process_pmid
 
-output_dir  = pystow.module("trialsynth", "results", "raw")
+output_dir = pystow.module("trialsynth", "results", "raw")
 txt_archive = pystow.module("trialsynth", "content", "txt")
 pdf_archive = pystow.module("trialsynth", "content", "pdfs")
-temp_work   = pystow.module("trialsynth", "content", "temp")
+temp_work = pystow.module("trialsynth", "content", "temp")
 trial_pkl_path = pystow.join("trialsynth", "clinicaltrials", name="clinicaltrials.pkl.gz")
 pubmed_nct_links_path = pystow.join("trialsynth", "clinicaltrials", name="pubmed_nct_links.csv")
 
@@ -47,7 +47,7 @@ def get_intersection_pmids(limit: int = None) -> list[str]:
 
     logger.info("Loading registry result links...")
     registry_result_links = set()
-    with gzip.open(pkl_path, "rb") as f:
+    with gzip.open(trial_pkl_path, "rb") as f:
         trials = pickle.load(f)
     for trial in trials:
         if trial.references:
@@ -59,7 +59,7 @@ def get_intersection_pmids(limit: int = None) -> list[str]:
 
     logger.info("Loading PubMed scan links...")
     pubmed_pmids = set()
-    with open(csv_path, "r") as f:
+    with open(pubmed_nct_links_path, "r") as f:
         reader = csv.reader(f)
         next(reader)
         for row in reader:
