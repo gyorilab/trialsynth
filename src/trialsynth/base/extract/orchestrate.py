@@ -1,13 +1,14 @@
 """
-Orchestrator: intersection PMIDs -> text download -> anchor extraction -> grounded JSONs.
+Orchestrator: intersection PMIDs -> text download -> anchor extraction ->
+grounded JSONs.
 
 Usage:
     python orchestrate.py           # default: 1000 PMIDs
     python orchestrate.py --limit 500
 
 Two-stage checkpointing:
-  - Text download: skipped if <pmid>.txt already exists in txt_archive
-  - Extraction:    skipped if <pmid>.json already exists in output_dir
+- Text download: skipped if <pmid>.txt already exists in txt_archive
+- Extraction:    skipped if <pmid>.json already exists in output_dir
 
 Re-running safely resumes from wherever it left off.
 """
@@ -15,35 +16,34 @@ Re-running safely resumes from wherever it left off.
 import csv
 import gzip
 import logging
-import os
 import pickle
-import shutil
-import tarfile
 import argparse
 from collections import Counter
-from pathlib import Path
 
 import tqdm
 import pystow
-import requests
 from openai import OpenAI
-from pypdf import PdfReader
-from indra.literature.pubmed_client import get_pmid_to_package_url_mapping, get_abstract
+from indra.literature.pmc_client import id_lookup
+from indra.literature.pubmed_client import get_abstract
 
 from trialsynth.base.extract.extract import process_pmid
+from trialsynth.base.extract.pmc_s3 import get_text_s3
 
 output_dir = pystow.module("trialsynth", "results", "raw")
 txt_archive = pystow.module("trialsynth", "content", "txt")
-pdf_archive = pystow.module("trialsynth", "content", "pdfs")
-temp_work = pystow.module("trialsynth", "content", "temp")
-trial_pkl_path = pystow.join("trialsynth", "clinicaltrials", name="clinicaltrials.pkl.gz")
-pubmed_nct_links_path = pystow.join("trialsynth", "clinicaltrials", name="pubmed_nct_links.csv")
+trial_pkl_path = pystow.join(
+    "trialsynth", "clinicaltrials", name="clinicaltrials.pkl.gz"
+)
+pubmed_nct_links_path = pystow.join(
+    "trialsynth", "clinicaltrials", name="pubmed_nct_links.csv"
+)
 
 logger = logging.getLogger('trialsynth.base.extract.orchestrate')
 
 
 def get_intersection_pmids(limit: int = None) -> list[str]:
-    """Return intersection PMIDs (registry RESULT links intersect PubMed scan), up to `limit`."""
+    """Return intersection PMIDs (registry RESULT links intersect PubMed scan),
+    up to `limit`."""
 
     logger.info("Loading registry result links...")
     registry_result_links = set()
@@ -53,7 +53,11 @@ def get_intersection_pmids(limit: int = None) -> list[str]:
         if trial.references:
             for ref in trial.references:
                 pmid = ref[0] if isinstance(ref, (tuple, list)) else ref
-                ref_type = str(ref[1]).upper() if isinstance(ref, (tuple, list)) and len(ref) > 1 else ""
+                ref_type = (
+                    str(ref[1]).upper()
+                    if isinstance(ref, (tuple, list)) and len(ref) > 1
+                    else ""
+                )
                 if pmid and "RESULT" in ref_type:
                     registry_result_links.add(pmid)
 
@@ -74,74 +78,36 @@ def get_intersection_pmids(limit: int = None) -> list[str]:
     return intersection
 
 
-def download_file(url: str, dest: Path) -> bool:
-    try:
-        with requests.get(url, stream=True, timeout=60) as r:
-            r.raise_for_status()
-            with open(dest, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-        return True
-    except Exception:
-        return False
-
-
 def download_texts(pmids: list[str]):
     logger.info(f"Downloading text for {len(pmids)} PMIDs...")
-    mappings = get_pmid_to_package_url_mapping()
 
     for pmid in tqdm.tqdm(pmids):
         if txt_archive.join(name=f"{pmid}.txt").exists():
             continue
 
-        for item in temp_work.glob("*"):
-            if item.is_file():
-                os.remove(item)
-            elif item.is_dir():
-                shutil.rmtree(item)
-
         try:
-            localized = False
+            text = None
             source = ""
-            package_url = mappings.get(pmid)
 
-            if package_url:
-                pkg_path = temp_work.join(name=f"temp_{pmid}.tar.gz")
-                if download_file(package_url, pkg_path):
-                    extract_path = temp_work.join(f"extract_{pmid}")
-                    try:
-                        with tarfile.open(pkg_path, "r:gz") as tar:
-                            tar.extractall(path=extract_path)
-                        pdfs = list(extract_path.rglob("*.pdf"))
-                        if pdfs:
-                            shutil.move(str(pdfs[0]), temp_work.join(name=f"{pmid}.pdf").as_posix())
-                            localized = True
-                            source = "PMC"
-                    except Exception:
-                        pass
+            pmcid = id_lookup(pmid, idtype="pmid").get("pmcid")
+            if pmcid:
+                text = get_text_s3(pmcid)
+                if text:
+                    source = f"PMC-S3:{pmcid}"
 
-            if not localized:
-                abstract = get_abstract(pmid, prepend_title=True)
-                if abstract:
-                    with open(txt_archive.join(name=f"{pmid}.txt"), "w", encoding="utf-8") as f:
-                        f.write(abstract)
-                    localized = True
+            if not text:
+                text = get_abstract(pmid, prepend_title=True)
+                if text:
                     source = "ABS"
 
-            if localized:
-                if source == "PMC":
-                    pdf_file = temp_work.join(name=f"{pmid}.pdf")
-                    reader = PdfReader(pdf_file)
-                    text = "\n".join(page.extract_text() for page in reader.pages)
-                    txt_archive.join(name=f"{pmid}.txt").write_text(text, encoding="utf-8")
-                    shutil.move(pdf_file.as_posix(),
-                                pdf_archive.join(name=pdf_file.name).as_posix())
+            if text:
+                txt_archive.join(name=f"{pmid}.txt").write_text(text, encoding="utf-8")
                 logger.info(f"{pmid} ({source}) - OK")
             else:
                 logger.info(f"{pmid} - NO CONTENT")
 
         except Exception as e:
-            logger.info(f"[{pmid} - FAILED: {e}")
+            logger.info(f"{pmid} - FAILED: {e}")
 
 
 def run_extraction(pmids: list[str]):
@@ -161,16 +127,22 @@ def run_extraction(pmids: list[str]):
 
     statuses = Counter(r["status"] for r in stats)
 
-    logger.info(f"Extraction complete: {statuses['ok']} new, {statuses['skipped']} "
-                f"skipped, {statuses['missing_text']} missing text, "
-                f"{len(statuses) - statuses['ok'] - statuses['skipped'] - statuses['missing_text']} errors")
+    n_errors = (
+        len(statuses) - statuses['ok'] - statuses['skipped'] - statuses['missing_text']
+    )
+    logger.info(
+        f"Extraction complete: {statuses['ok']} new, {statuses['skipped']} skipped, "
+        f"{statuses['missing_text']} missing text, {n_errors} errors"
+    )
     if statuses.get('completed'):
         total_out = sum(r["output_tokens"] for r in stats if r["status"] == "completed")
         logger.info(f"Avg output tokens/paper: {total_out // statuses['completed']}")
 
     csv_path = pystow.join("trialsynth", "results", name="extraction_stats.csv")
     with open(csv_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["pmid", "status", "input_tokens", "output_tokens"])
+        writer = csv.DictWriter(
+            f, fieldnames=["pmid", "status", "input_tokens", "output_tokens"]
+        )
         writer.writeheader()
         writer.writerows(stats)
     logger.info(f"Stats saved to {csv_path}")
