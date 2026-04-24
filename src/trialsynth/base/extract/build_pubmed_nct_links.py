@@ -1,4 +1,6 @@
 """
+Retained for historical record; not part of the active trialsynth pipeline.
+
 Extract PMID -> NCT ID links from the PubMed XML baseline archive.
 
 NCT IDs are sourced from:
