@@ -158,8 +158,9 @@ def build_evidence_hover(item):
 
 def render_metric_row(name, value_text, item):
     evidence_hover = build_evidence_hover(item)
+    grounding = format_grounding(item.get("grounding")) if isinstance(item, dict) else ""
     return (
-        f"<tr><td>{html.escape(str(name))}{evidence_hover}</td>"
+        f"<tr><td>{html.escape(str(name))}{evidence_hover} {grounding}</td>"
         f"<td style='text-align:right; font-weight:600;'>{html.escape(str(value_text))}</td></tr>"
     )
 

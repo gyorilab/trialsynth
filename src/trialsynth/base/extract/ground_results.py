@@ -2,15 +2,17 @@
 Ground genetic markers and clinical criteria in extracted JSON files using local Gilda.
 
 Reads raw anchor JSONs and writes grounded versions with HGNC groundings for
-genetic markers and MESH/DOID/EFO groundings for inclusion/exclusion criteria.
+genetic markers and HP/DOID/MESH/EFO groundings for inclusion/exclusion criteria and adverse events.
 
 Usage:
     python ground_results.py --input-dir <raw_dir> --output-dir <grounded_dir>
 """
 
 import argparse
+import csv
 import json
 import logging
+import random
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -19,7 +21,8 @@ import gilda
 import pystow
 
 logger = logging.getLogger('trialsynth.base.extract.ground_results')
-
+AE_NAMESPACES = ["HP", "DOID", "MESH", "EFO"]
+AE_SHORT_TOKEN_MIN_LEN_DEFAULT = 4
 
 def get_gilda_grounding(text: str, sources: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
     """Ground text using local Gilda library (replaces REST API call)."""
@@ -117,7 +120,35 @@ def ground_marker(item: Any) -> Dict[str, Any]:
     }
 
 
-def ground_json(input_path: Path, output_path: Path) -> None:
+def _normalize_ae_text(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "").strip())
+
+
+def ground_adverse_event(
+    event_name: str,
+    *,
+    min_len: int,
+) -> Optional[Dict[str, Any]]:
+    clean = _normalize_ae_text(event_name)
+    if len(clean) < min_len:
+        return None
+    top = get_gilda_grounding(clean, sources=AE_NAMESPACES)
+    if not top:
+        return None
+    return {
+        "db": top["db"],
+        "id": top["id"],
+        "name": top["entry_name"],
+        "score": top["score"],
+    }
+
+
+def ground_json(
+    input_path: Path,
+    output_path: Path,
+    *,
+    ae_min_len: int,
+) -> tuple[int, int, list[dict[str, Any]]]:
     with open(input_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
@@ -133,31 +164,57 @@ def ground_json(input_path: Path, output_path: Path) -> None:
     data['genetic']['grounded_inclusion'] = grounded_genetic
 
     grounded_inclusion = []
-    for item in data.get('inclusion_criteria', [])[:5]:
+    for item in data.get('inclusion_criteria', []):
         if isinstance(item, str):
             text = item
             ev = "Retrospective migration"
         else:
             text = item.get("text", "")
             ev = item.get("evidence_text", "Retrospective migration")
-        match = get_gilda_grounding(text, sources=["MESH", "DOID", "EFO"])
+        match = get_gilda_grounding(text, sources=["HP", "DOID", "MESH", "EFO"])
         grounded_inclusion.append({"text": text, "evidence_text": ev, "grounding": match})
     data['grounded_inclusion_criteria'] = grounded_inclusion
 
     grounded_exclusion = []
-    for item in data.get('exclusion_criteria', [])[:5]:
+    for item in data.get('exclusion_criteria', []):
         if isinstance(item, str):
             text = item
             ev = "Retrospective migration"
         else:
             text = item.get("text", "")
             ev = item.get("evidence_text", "Retrospective migration")
-        match = get_gilda_grounding(text, sources=["MESH", "DOID", "EFO"])
+        match = get_gilda_grounding(text, sources=["HP", "DOID", "MESH", "EFO"])
         grounded_exclusion.append({"text": text, "evidence_text": ev, "grounding": match})
     data['grounded_exclusion_criteria'] = grounded_exclusion
+    ae_total = 0
+    ae_grounded = 0
+    ae_review_rows: list[dict[str, Any]] = []
+    for arm in data.get("arms", []):
+        arm_name = arm.get("arm_name", "")
+        for ae in arm.get("adverse_events", []):
+            ae_total += 1
+            event_name = ae.get("event_name", "")
+            grounding = ground_adverse_event(
+                event_name,
+                min_len=ae_min_len,
+            )
+            ae["grounding"] = grounding
+            if grounding:
+                ae_grounded += 1
+            ae_review_rows.append({
+                "pmid": str(data.get("pmid", input_path.stem)),
+                "arm_name": arm_name,
+                "event_name": event_name,
+                "grounded_db": (grounding or {}).get("db", ""),
+                "grounded_id": (grounding or {}).get("id", ""),
+                "grounded_name": (grounding or {}).get("name", ""),
+                "score": (grounding or {}).get("score", ""),
+                "evidence_text": ae.get("source_sentence", ""),
+            })
 
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2)
+    return ae_total, ae_grounded, ae_review_rows
 
 
 def main():
@@ -166,19 +223,89 @@ def main():
                         default=pystow.join("trialsynth", "results", "raw"))
     parser.add_argument("--output-dir", type=Path,
                         default=pystow.join("trialsynth", "results", "grounded"))
+    parser.add_argument("--pmid-list", type=Path, default=None,
+                        help="Optional file with one PMID per line for pilot/smoke subsets.")
+    parser.add_argument("--max-files", type=int, default=None,
+                        help="Optional max number of JSON files to process.")
+    parser.add_argument("--seed", type=int, default=42,
+                        help="Random seed used when sampling --max-files without --pmid-list.")
+    parser.add_argument("--ae-min-len", type=int, default=AE_SHORT_TOKEN_MIN_LEN_DEFAULT)
+    parser.add_argument("--ae-review-csv", type=Path, default=None,
+                        help="Optional CSV path for AE grounding review table.")
+    parser.add_argument("--metrics-json", type=Path, default=None,
+                        help="Optional JSON path for pilot/smoke AE grounding metrics.")
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     json_files = list(args.input_dir.glob("*.json"))
+    if args.pmid_list:
+        pmids = {
+            line.strip() for line in args.pmid_list.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        }
+        json_files = [p for p in json_files if p.stem in pmids]
+    elif args.max_files and len(json_files) > args.max_files:
+        random.seed(args.seed)
+        json_files = random.sample(json_files, args.max_files)
+    elif args.max_files:
+        json_files = json_files[:args.max_files]
+
     logger.info(f"Grounding {len(json_files)} files...")
+    ae_total = 0
+    ae_grounded = 0
+    ae_rows: list[dict[str, Any]] = []
     for i, jf in enumerate(json_files):
         out = args.output_dir / jf.name
         if out.exists():
             continue
-        ground_json(jf, out)
+        file_total, file_grounded, file_rows = ground_json(
+            jf,
+            out,
+            ae_min_len=args.ae_min_len,
+        )
+        ae_total += file_total
+        ae_grounded += file_grounded
+        ae_rows.extend(file_rows)
         if (i + 1) % 50 == 0:
             logger.info(f"  {i + 1}/{len(json_files)} done")
+    if args.ae_review_csv:
+        args.ae_review_csv.parent.mkdir(parents=True, exist_ok=True)
+        with args.ae_review_csv.open("w", encoding="utf-8", newline="") as fh:
+            writer = csv.DictWriter(fh, fieldnames=[
+                "pmid", "arm_name", "event_name", "grounded_db", "grounded_id",
+                "grounded_name", "score", "evidence_text",
+            ])
+            writer.writeheader()
+            writer.writerows(ae_rows)
+    if args.metrics_json:
+        args.metrics_json.parent.mkdir(parents=True, exist_ok=True)
+        grounded_rows = [r for r in ae_rows if r["grounded_id"]]
+        namespace_counts: Dict[str, int] = {}
+        empty_event_name = 0
+        duplicate_groundings = 0
+        seen = set()
+        for row in ae_rows:
+            if not _normalize_ae_text(row["event_name"]):
+                empty_event_name += 1
+            key = (row["pmid"], row["arm_name"], row["event_name"], row["grounded_db"], row["grounded_id"])
+            if row["grounded_id"] and key in seen:
+                duplicate_groundings += 1
+            seen.add(key)
+        for row in grounded_rows:
+            namespace_counts[row["grounded_db"]] = namespace_counts.get(row["grounded_db"], 0) + 1
+        metrics = {
+            "files_processed": len(json_files),
+            "ae_total": ae_total,
+            "ae_grounded": ae_grounded,
+            "ae_coverage": (ae_grounded / ae_total) if ae_total else 0.0,
+            "namespace_distribution": namespace_counts,
+            "empty_event_name_rate": (empty_event_name / ae_total) if ae_total else 0.0,
+            "duplicate_grounding_rate": (duplicate_groundings / ae_total) if ae_total else 0.0,
+            "ae_min_len": args.ae_min_len,
+            "ae_namespaces": AE_NAMESPACES,
+        }
+        args.metrics_json.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     logger.info("Done.")
 
 

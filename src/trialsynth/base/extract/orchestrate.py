@@ -116,7 +116,7 @@ def run_extraction(pmids: list[str]):
     stats = []
 
     for pmid in pmids:
-        row = process_pmid(pmid, client, txt_archive, output_dir)
+        row = process_pmid(pmid, client, txt_archive.base, output_dir.base)
         stats.append(row)
         if row["status"] == "ok":
             logger.info(f"  {pmid} extracted ({row['output_tokens']} output tokens)")
