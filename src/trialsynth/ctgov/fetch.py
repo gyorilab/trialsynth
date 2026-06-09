@@ -231,6 +231,7 @@ class CTFetcher(Fetcher):
                         text=mesh.term,
                         origin=trial.curie,
                         source=self.config.registry,
+                        grounding_source="mesh"
                     )
                     for mesh in condition_meshes
                 ]
@@ -264,6 +265,7 @@ class CTFetcher(Fetcher):
                         text=mesh.term,
                         origin=trial.curie,
                         source=self.config.registry,
+                        grounding_source="mesh"
                     )
                     for mesh in intervention_meshes
                 ]
