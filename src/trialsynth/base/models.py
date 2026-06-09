@@ -424,9 +424,16 @@ class Edge:
         The type of relation.
     """
 
-    def __init__(self, trial: Trial, entity: BioEntity,source: str):
+    def __init__(
+        self,
+        trial: Trial,
+        entity: BioEntity,
+        source: str,
+        grounding_source: Literal["gilda", "mesh"],
+    ):
         self.trial = trial
         self.entity = entity
         self.source = source
 
-        self.rel_type = f'has_{type(entity).__name__.lower()}'
+        self.rel_type = f"has_{type(entity).__name__.lower()}"
+        self.grounding_source = Literal["gilda", "mesh"] = grounding_source

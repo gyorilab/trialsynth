@@ -183,7 +183,6 @@ class Processor:
         self.intervention_grounder.ground("stuff")
         logger.info("Done.")
 
-
         for ent_type, entities, grounder in zip(
             self.entities.keys(),
             self.entities.values(),
@@ -205,7 +204,6 @@ class Processor:
 
                     trial.entities.extend(entities)
 
-
     def create_edges(self):
         """Creates edges connecting trials to related bioentities."""
 
@@ -215,7 +213,17 @@ class Processor:
             unit="trial",
             unit_scale=True,
         ):
-            self.edges.extend([Edge(trial, entity, self.config.registry) for entity in trial.entities])
+            self.edges.extend(
+                [
+                    Edge(
+                        trial,
+                        entity,
+                        self.config.registry,
+                        grounding_source=entity.grounding_source,
+                    )
+                    for entity in trial.entities
+                ]
+            )
 
     def save_trial_data(
         self, path: Path, sample_path: Optional[Path] = None
@@ -327,13 +335,14 @@ class Processor:
         edges = [self.transformer.flatten_edge(edge) for edge in self.edges]
 
         store.save_data_as_flatfile(
-            list(set(edges)),
+            list(set(edges)),  # Remove duplicate edges
             path=path,
             headers=[
                 "from:CURIE",
                 "to:CURIE",
                 "rel_type:string",
                 "source_registry:string",
+                "grounding_source:string",
             ],
             sample_path=sample_path,
             num_samples=self.config.num_sample_entries,

@@ -162,7 +162,7 @@ class Transformer:
         )
 
     @staticmethod
-    def flatten_edge(edge: Edge) -> Tuple[str, str, str, str]:
+    def flatten_edge(edge: Edge) -> Tuple[str, str, str, str, str]:
         """Flattens an Edge into a tuple of strings.
 
         Parameters
@@ -172,12 +172,14 @@ class Transformer:
 
         Returns
         -------
-        Tuple[str, str, str, str]
-            A tuple of the flattened Edge. In order of trial_curie, bio_ent_curie, rel_type, rel_type_curie, source.
+        Tuple[str, str, str, str, str]
+            A tuple of the flattened Edge. In order of trial_curie,
+            bio_ent_curie, rel_type, rel_type_curie, source, grounding_source.
         """
         return (
             edge.trial.curie,
             edge.entity.curie,
             edge.rel_type,
             edge.source,
+            edge.grounding_source
         )
