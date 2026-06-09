@@ -436,4 +436,4 @@ class Edge:
         self.source = source
 
         self.rel_type = f"has_{type(entity).__name__.lower()}"
-        self.grounding_source = Literal["gilda", "mesh"] = grounding_source
+        self.grounding_source: Literal["gilda", "mesh"] = grounding_source
