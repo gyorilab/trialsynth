@@ -213,17 +213,45 @@ class Processor:
             unit="trial",
             unit_scale=True,
         ):
-            self.edges.extend(
-                [
+            # Group conditions and interventions of same grounding together, and
+            # create edges from trial to each unique grounded entity with a list
+            # of the sources of that grounding e.g., ['mesh', 'gilda']
+            condition_sources = {}
+            intervention_sources = {}
+            for cond in trial.conditions:
+                if cond.curie not in condition_sources:
+                    condition_sources[cond.curie] = []
+                condition_sources[cond.curie].append(cond.grounding_source)
+            for intv in trial.interventions:
+                if intv.curie not in intervention_sources:
+                    intervention_sources[intv.curie] = []
+                intervention_sources[intv.curie].append(intv.grounding_source)
+
+            # Create edges
+            added_conditions = set()
+            added_interventions = set()
+            for entity in trial.entities:
+                if isinstance(entity, Condition):
+                    if entity.curie in added_conditions:
+                        continue
+                    added_conditions.add(entity.curie)
+                    grounding_sources = condition_sources.get(entity.curie, [])
+                else:
+                    if entity.curie in added_interventions:
+                        continue
+                    added_interventions.add(entity.curie)
+                    grounding_sources = intervention_sources.get(
+                        entity.curie, []
+                    )
+
+                self.edges.append(
                     Edge(
                         trial,
                         entity,
                         self.config.registry,
-                        grounding_source=entity.grounding_source,
+                        grounding_sources=grounding_sources,
                     )
-                    for entity in trial.entities
-                ]
-            )
+                )
 
     def save_trial_data(
         self, path: Path, sample_path: Optional[Path] = None
@@ -342,7 +370,7 @@ class Processor:
                 "to:CURIE",
                 "rel_type:string",
                 "source_registry:string",
-                "grounding_source:string",
+                "grounding_sources:string[]",
             ],
             sample_path=sample_path,
             num_samples=self.config.num_sample_entries,

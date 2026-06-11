@@ -416,12 +416,14 @@ class Edge:
 
     Attributes
     ----------
-    trial: Trial
+    trial :
         The trial that has a relation to an entity
-    entity: BioEntity
+    entity :
         The bioentity that is related to the trial.
-    rel_type: str
+    rel_type :
         The type of relation.
+    grounding_sources :
+        The sources of grounding for the bioentity.
     """
 
     def __init__(
@@ -429,11 +431,11 @@ class Edge:
         trial: Trial,
         entity: BioEntity,
         source: str,
-        grounding_source: Literal["gilda", "mesh"],
+        grounding_sources: list[Literal["gilda", "mesh"]],
     ):
         self.trial = trial
         self.entity = entity
         self.source = source
 
         self.rel_type = f"has_{type(entity).__name__.lower()}"
-        self.grounding_source: Literal["gilda", "mesh"] = grounding_source
+        self.grounding_sources: list[Literal["gilda", "mesh"]] = grounding_sources

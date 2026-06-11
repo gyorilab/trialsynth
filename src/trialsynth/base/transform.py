@@ -167,19 +167,19 @@ class Transformer:
 
         Parameters
         ----------
-        edge : Edge
+        edge :
             The Edge to flatten
 
         Returns
         -------
-        Tuple[str, str, str, str, str]
+        :
             A tuple of the flattened Edge. In order of trial_curie,
-            bio_ent_curie, rel_type, rel_type_curie, source, grounding_source.
+            bio_ent_curie, rel_type, rel_type_curie, source, grounding_sources.
         """
         return (
             edge.trial.curie,
             edge.entity.curie,
             edge.rel_type,
             edge.source,
-            edge.grounding_source
+            join_list_to_str(edge.grounding_sources)
         )
