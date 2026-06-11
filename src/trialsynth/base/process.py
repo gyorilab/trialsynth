@@ -1,9 +1,8 @@
 import logging
 from pathlib import Path
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional
 
 import click
-import gilda
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
@@ -11,7 +10,7 @@ from . import store
 from .config import Config
 from .fetch import Fetcher
 from ..base.ground import Grounder
-from .models import Condition, Intervention, Edge, Trial
+from .models import Condition, Edge, Trial
 from .transform import Transformer
 from .validate import Validator
 
