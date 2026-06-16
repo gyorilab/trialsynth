@@ -25,7 +25,7 @@ AE_NAMESPACES = ["HP", "DOID", "MESH", "EFO"]
 AE_SHORT_TOKEN_MIN_LEN_DEFAULT = 4
 
 def get_gilda_grounding(text: str, sources: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
-    """Ground text using local Gilda library (replaces REST API call)."""
+    """Ground text using local Gilda, returning the top hit or None."""
     if not text:
         return None
     try:
@@ -43,6 +43,8 @@ def get_gilda_grounding(text: str, sources: Optional[List[str]] = None) -> Optio
     return None
 
 
+CRITERIA_NAMESPACES = {"HP", "DOID", "MESH", "EFO"}
+
 ANNOTATE_STOPLIST = {
     'FISH', 'IV', 'WT', 'HR', 'CI', 'OR', 'RR', 'OS', 'PFS', 'CR', 'PR',
     'SD', 'PD', 'CT', 'MRI', 'PCR', 'IHC', 'AE', 'SAE', 'PS', 'ECOG',
@@ -52,7 +54,7 @@ ANNOTATE_STOPLIST = {
 
 
 def _annotate_fallback(evidence_text: str) -> List[Dict[str, Any]]:
-    """Fallback: run gilda.annotate() on full sentence, return HGNC hits with score > 0.75."""
+    """Fallback: run gilda.annotate() on full sentence, return HGNC hits above min length not in stoplist."""
     if not evidence_text:
         return []
     try:
@@ -63,8 +65,6 @@ def _annotate_fallback(evidence_text: str) -> List[Dict[str, Any]]:
                 continue
             top = r.matches[0]
             if top.term.db != 'HGNC':
-                continue
-            if top.score < 0.75:
                 continue
             if len(r.text) < 4:
                 continue
@@ -83,12 +83,13 @@ def _annotate_fallback(evidence_text: str) -> List[Dict[str, Any]]:
 
 
 def ground_marker(item: Any) -> Dict[str, Any]:
+    """Ground a genetic marker item, returning HGNC groundings and variant if found."""
     if isinstance(item, str):
         text = item
-        evidence_text = "Retrospective migration"
+        evidence_text = ""
     else:
         text = item.get("text", "")
-        evidence_text = item.get("evidence_text", "Retrospective migration")
+        evidence_text = item.get("evidence_text", "")
 
     raw = text.strip()
     parts = re.split(r'[:/-]', raw)
@@ -103,7 +104,7 @@ def ground_marker(item: Any) -> Dict[str, Any]:
         if g:
             groundings.append({"symbol": s, "info": g})
 
-    if not groundings and evidence_text and evidence_text != "Retrospective migration":
+    if not groundings and evidence_text:
         fallback_hits = _annotate_fallback(evidence_text)
         groundings.extend(fallback_hits)
 
@@ -121,7 +122,34 @@ def ground_marker(item: Any) -> Dict[str, Any]:
 
 
 def _normalize_ae_text(text: str) -> str:
+    """Normalize whitespace in AE event name text."""
     return re.sub(r"\s+", " ", (text or "").strip())
+
+
+def _annotate_fallback_ae(text: str) -> Optional[Dict[str, Any]]:
+    """Fallback: run gilda.annotate() on AE text, return top hit filtered to AE_NAMESPACES."""
+    if not text:
+        return None
+    try:
+        results = gilda.annotate(text)
+        for r in results:
+            if not r.matches:
+                continue
+            top = r.matches[0]
+            if top.term.db not in AE_NAMESPACES:
+                continue
+            if len(r.text) < 4:
+                continue
+            return {
+                "db": top.term.db,
+                "id": top.term.id,
+                "name": top.term.entry_name,
+                "score": top.score,
+                "source": "annotate",
+            }
+    except Exception:
+        pass
+    return None
 
 
 def ground_adverse_event(
@@ -129,18 +157,20 @@ def ground_adverse_event(
     *,
     min_len: int,
 ) -> Optional[Dict[str, Any]]:
+    """Ground an AE event name via gilda.ground, falling back to gilda.annotate."""
     clean = _normalize_ae_text(event_name)
     if len(clean) < min_len:
         return None
     top = get_gilda_grounding(clean, sources=AE_NAMESPACES)
-    if not top:
-        return None
-    return {
-        "db": top["db"],
-        "id": top["id"],
-        "name": top["entry_name"],
-        "score": top["score"],
-    }
+    if top:
+        return {
+            "db": top["db"],
+            "id": top["id"],
+            "name": top["entry_name"],
+            "score": top["score"],
+            "source": "ground",
+        }
+    return _annotate_fallback_ae(clean)
 
 
 def ground_json(
@@ -149,12 +179,13 @@ def ground_json(
     *,
     ae_min_len: int,
 ) -> tuple[int, int, list[dict[str, Any]]]:
+    """Ground all genetic markers, criteria, and AEs in a single JSON file and write output."""
     with open(input_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
     if "results" in data:
         data["results"] = [
-            {"text": r, "evidence_text": "Retrospective migration"} if isinstance(r, str) else r
+            {"text": r, "evidence_text": ""} if isinstance(r, str) else r
             for r in data["results"]
         ]
 
@@ -167,11 +198,13 @@ def ground_json(
     for item in data.get('inclusion_criteria', []):
         if isinstance(item, str):
             text = item
-            ev = "Retrospective migration"
+            ev = ""
         else:
             text = item.get("text", "")
-            ev = item.get("evidence_text", "Retrospective migration")
+            ev = item.get("evidence_text", "")
         match = get_gilda_grounding(text, sources=["HP", "DOID", "MESH", "EFO"])
+        if match and match.get("db") not in CRITERIA_NAMESPACES:
+            match = None
         grounded_inclusion.append({"text": text, "evidence_text": ev, "grounding": match})
     data['grounded_inclusion_criteria'] = grounded_inclusion
 
@@ -179,11 +212,13 @@ def ground_json(
     for item in data.get('exclusion_criteria', []):
         if isinstance(item, str):
             text = item
-            ev = "Retrospective migration"
+            ev = ""
         else:
             text = item.get("text", "")
-            ev = item.get("evidence_text", "Retrospective migration")
+            ev = item.get("evidence_text", "")
         match = get_gilda_grounding(text, sources=["HP", "DOID", "MESH", "EFO"])
+        if match and match.get("db") not in CRITERIA_NAMESPACES:
+            match = None
         grounded_exclusion.append({"text": text, "evidence_text": ev, "grounding": match})
     data['grounded_exclusion_criteria'] = grounded_exclusion
     ae_total = 0
@@ -218,6 +253,7 @@ def ground_json(
 
 
 def main():
+    """CLI entry point: ground all JSON files in input-dir and write to output-dir."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--input-dir", type=Path,
                         default=pystow.join("trialsynth", "results", "raw"))
