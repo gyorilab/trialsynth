@@ -439,3 +439,32 @@ class Edge:
 
         self.rel_type = f"has_{type(entity).__name__.lower()}"
         self.grounding_sources: list[Literal["gilda", "mesh"]] = grounding_sources
+
+
+class PublicationEdge:
+    """Edge between a trial and a publication
+
+    Attributes
+    ----------
+    trial :
+        The trial that has a relation to a publication
+    publication :
+        The publication that is related to the trial.
+    source :
+        The source of the publication information. Either of "pubmed" or
+        "clinicaltrials"
+    rel_type :
+        The type of relation.
+    """
+
+    def __init__(
+        self,
+        trial: Trial,
+        publication: str,
+        source: Literal["pubmed", "clinicaltrials"],  # todo: potentially remove
+    ):
+        self.trial = trial
+        self.publication = publication
+        self.source = source
+
+        self.rel_type = "has_publication"
