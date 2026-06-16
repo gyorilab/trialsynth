@@ -1,0 +1,153 @@
+{
+  "type": "object",
+  "properties": {
+    "study_info": {"type": "string"},
+    "pmid": {"type": "string"},
+    "trial_ids": {"type": "array", "items": {"type": "string"}},
+    "phase": {"type": ["string", "null"]},
+    "locations": {"type": "array", "items": {"type": "string"}},
+    "arms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "arm_name": {"type": "string"},
+          "n": {"type": ["integer", "null"]},
+          "dosage": {"type": ["string", "null"]},
+          "evidence_anchor": {"type": "string"},
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {"type": "string"},
+                "value_numeric": {"type": ["number", "null"]},
+                "unit": {"type": "string"},
+                "value_text": {"type": "string"},
+                "evidence_anchor": {"type": "string"}
+              },
+              "required": ["name", "value_numeric", "unit", "value_text", "evidence_anchor"],
+              "additionalProperties": false
+            }
+          },
+          "adverse_events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "event_name": {"type": "string"},
+                "incidence_numeric": {"type": ["number", "null"]},
+                "unit": {"type": "string"},
+                "value_text": {"type": "string"},
+                "evidence_anchor": {"type": "string"}
+              },
+              "required": ["event_name", "incidence_numeric", "unit", "value_text", "evidence_anchor"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["arm_name", "n", "dosage", "evidence_anchor", "metrics", "adverse_events"],
+        "additionalProperties": false
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": {"type": "string"},
+          "evidence_anchor": {"type": "string"}
+        },
+        "required": ["text", "evidence_anchor"],
+        "additionalProperties": false
+      }
+    },
+    "inclusion_criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": {"type": "string"},
+          "evidence_anchor": {"type": "string"}
+        },
+        "required": ["text", "evidence_anchor"],
+        "additionalProperties": false
+      }
+    },
+    "exclusion_criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": {"type": "string"},
+          "evidence_anchor": {"type": "string"}
+        },
+        "required": ["text", "evidence_anchor"],
+        "additionalProperties": false
+      }
+    },
+    "statistical_comparisons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "comparison_name": {"type": "string"},
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {"type": "string"},
+                "value_numeric": {"type": ["number", "null"]},
+                "unit": {"type": "string"},
+                "value_text": {"type": "string"},
+                "evidence_anchor": {"type": "string"}
+              },
+              "required": ["name", "value_numeric", "unit", "value_text", "evidence_anchor"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["comparison_name", "metrics"],
+        "additionalProperties": false
+      }
+    },
+    "genetic": {
+      "type": "object",
+      "properties": {
+        "genetic_inclusion": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": {"type": "string"},
+              "evidence_anchor": {"type": "string"}
+            },
+            "required": ["text", "evidence_anchor"],
+            "additionalProperties": false
+          }
+        },
+        "genetic_exclusion": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": {"type": "string"},
+              "evidence_anchor": {"type": "string"}
+            },
+            "required": ["text", "evidence_anchor"],
+            "additionalProperties": false
+          }
+        },
+        "reasoning": {"type": "string"}
+      },
+      "required": ["genetic_inclusion", "genetic_exclusion", "reasoning"],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "study_info", "pmid", "trial_ids", "phase", "locations", "arms", "results",
+    "inclusion_criteria", "exclusion_criteria", "statistical_comparisons", "genetic"
+  ],
+  "additionalProperties": false
+}

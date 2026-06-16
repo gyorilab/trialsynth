@@ -23,6 +23,11 @@ logger = logging.getLogger('trialsynth.base.extract.extract')
 
 LLM_MODEL = "gpt-5.4-mini"
 
+_RESOURCES_DIR = Path(__file__).parent / "resources"
+TRIAL_RESULT_SCHEMA_ANCHOR: dict = json.loads(
+    (_RESOURCES_DIR / "trial_result_schema_anchor.json").read_text(encoding="utf-8")
+)
+
 
 def split_sentences(text: str) -> list[str]:
     blob = re.sub(r"\s+", " ", text.strip())
@@ -80,159 +85,6 @@ def best_sentence_for_anchor(anchor: str, sentences: list[str]) -> str:
     return best_sentence
 
 
-TRIAL_RESULT_SCHEMA_ANCHOR = {
-    "type": "object",
-    "properties": {
-        "study_info": {"type": "string"},
-        "pmid": {"type": "string"},
-        "trial_ids": {"type": "array", "items": {"type": "string"}},
-        "phase": {"type": ["string", "null"]},
-        "locations": {"type": "array", "items": {"type": "string"}},
-        "arms": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "arm_name": {"type": "string"},
-                    "n": {"type": ["integer", "null"]},
-                    "dosage": {"type": ["string", "null"]},
-                    "evidence_anchor": {"type": "string"},
-                    "metrics": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "name": {"type": "string"},
-                                "value_numeric": {"type": ["number", "null"]},
-                                "unit": {"type": "string"},
-                                "value_text": {"type": "string"},
-                                "evidence_anchor": {"type": "string"}
-                            },
-                            "required": ["name", "value_numeric", "unit", "value_text", "evidence_anchor"],
-                            "additionalProperties": False
-                        }
-                    },
-                    "adverse_events": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "event_name": {"type": "string"},
-                                "incidence_numeric": {"type": ["number", "null"]},
-                                "unit": {"type": "string"},
-                                "value_text": {"type": "string"},
-                                "evidence_anchor": {"type": "string"}
-                            },
-                            "required": ["event_name", "incidence_numeric", "unit", "value_text", "evidence_anchor"],
-                            "additionalProperties": False
-                        }
-                    }
-                },
-                "required": ["arm_name", "n", "dosage", "evidence_anchor", "metrics", "adverse_events"],
-                "additionalProperties": False
-            }
-        },
-        "results": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "text": {"type": "string"},
-                    "evidence_anchor": {"type": "string"}
-                },
-                "required": ["text", "evidence_anchor"],
-                "additionalProperties": False
-            }
-        },
-        "inclusion_criteria": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "text": {"type": "string"},
-                    "evidence_anchor": {"type": "string"}
-                },
-                "required": ["text", "evidence_anchor"],
-                "additionalProperties": False
-            }
-        },
-        "exclusion_criteria": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "text": {"type": "string"},
-                    "evidence_anchor": {"type": "string"}
-                },
-                "required": ["text", "evidence_anchor"],
-                "additionalProperties": False
-            }
-        },
-        "statistical_comparisons": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "comparison_name": {"type": "string"},
-                    "metrics": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "name": {"type": "string"},
-                                "value_numeric": {"type": ["number", "null"]},
-                                "unit": {"type": "string"},
-                                "value_text": {"type": "string"},
-                                "evidence_anchor": {"type": "string"}
-                            },
-                            "required": ["name", "value_numeric", "unit", "value_text", "evidence_anchor"],
-                            "additionalProperties": False
-                        }
-                    }
-                },
-                "required": ["comparison_name", "metrics"],
-                "additionalProperties": False
-            }
-        },
-        "genetic": {
-            "type": "object",
-            "properties": {
-                "genetic_inclusion": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "text": {"type": "string"},
-                            "evidence_anchor": {"type": "string"}
-                        },
-                        "required": ["text", "evidence_anchor"],
-                        "additionalProperties": False
-                    }
-                },
-                "genetic_exclusion": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "text": {"type": "string"},
-                            "evidence_anchor": {"type": "string"}
-                        },
-                        "required": ["text", "evidence_anchor"],
-                        "additionalProperties": False
-                    }
-                },
-                "reasoning": {"type": "string"}
-            },
-            "required": ["genetic_inclusion", "genetic_exclusion", "reasoning"],
-            "additionalProperties": False
-        }
-    },
-    "required": [
-        "study_info", "pmid", "trial_ids", "phase", "locations", "arms", "results",
-        "inclusion_criteria", "exclusion_criteria", "statistical_comparisons", "genetic"
-    ],
-    "additionalProperties": False
-}
 
 
 def resolve_anchors(raw: dict, sentences: list[str]) -> dict:
