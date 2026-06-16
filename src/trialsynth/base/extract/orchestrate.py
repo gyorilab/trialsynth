@@ -21,16 +21,13 @@ import argparse
 from collections import Counter
 
 import tqdm
-from openai import OpenAI
-
 import pystow
-
-from trialsynth.base.extract.paths import CLINICALTRIALS_DIR, RESULTS_RAW_DIR
-from indra.literature.pmc_client import id_lookup
+from openai import OpenAI
+from indra.literature.pmc_client import id_lookup, get_text_s3
 from indra.literature.pubmed_client import get_abstract
 
 from trialsynth.base.extract.extract import process_pmid
-from trialsynth.base.extract.pmc_s3 import get_text_s3
+from trialsynth.base.extract.paths import CLINICALTRIALS_DIR, RESULTS_RAW_DIR
 
 output_dir = pystow.module("trialsynth", "results", "raw")
 txt_archive = pystow.module("trialsynth", "content", "txt")
