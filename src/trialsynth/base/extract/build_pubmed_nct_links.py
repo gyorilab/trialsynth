@@ -27,8 +27,9 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-import pystow
 import tqdm
+
+from trialsynth.base.extract.paths import CLINICALTRIALS_DIR
 
 logger = logging.getLogger('trialsynth.base.extract.build_pubmed_nct_links')
 
@@ -83,8 +84,8 @@ def main():
                         help='Process only first N files (for testing)')
     args = parser.parse_args()
 
-    output_path = pystow.join("trialsynth", "clinicaltrials", name="pubmed_nct_links.csv")
-    checkpoint_path = pystow.join("trialsynth", "clinicaltrials", name="processed_files.txt")
+    output_path = CLINICALTRIALS_DIR / "pubmed_nct_links.csv"
+    checkpoint_path = CLINICALTRIALS_DIR / "processed_files.txt"
 
     done = set()
     if checkpoint_path.exists():

@@ -21,8 +21,11 @@ import argparse
 from collections import Counter
 
 import tqdm
-import pystow
 from openai import OpenAI
+
+import pystow
+
+from trialsynth.base.extract.paths import CLINICALTRIALS_DIR, RESULTS_RAW_DIR
 from indra.literature.pmc_client import id_lookup
 from indra.literature.pubmed_client import get_abstract
 
@@ -31,12 +34,8 @@ from trialsynth.base.extract.pmc_s3 import get_text_s3
 
 output_dir = pystow.module("trialsynth", "results", "raw")
 txt_archive = pystow.module("trialsynth", "content", "txt")
-trial_pkl_path = pystow.join(
-    "trialsynth", "clinicaltrials", name="clinicaltrials.pkl.gz"
-)
-pubmed_nct_links_path = pystow.join(
-    "trialsynth", "clinicaltrials", name="pubmed_nct_links.csv"
-)
+trial_pkl_path = CLINICALTRIALS_DIR / "clinicaltrials.pkl.gz"
+pubmed_nct_links_path = CLINICALTRIALS_DIR / "pubmed_nct_links.csv"
 
 logger = logging.getLogger('trialsynth.base.extract.orchestrate')
 
@@ -138,7 +137,7 @@ def run_extraction(pmids: list[str]):
         total_out = sum(r["output_tokens"] for r in stats if r["status"] == "completed")
         logger.info(f"Avg output tokens/paper: {total_out // statuses['completed']}")
 
-    csv_path = pystow.join("trialsynth", "results", name="extraction_stats.csv")
+    csv_path = RESULTS_RAW_DIR.parent / "extraction_stats.csv"
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(
             f, fieldnames=["pmid", "status", "input_tokens", "output_tokens"]
@@ -154,7 +153,7 @@ def main():
                         help="Max PMIDs to process (default: 1000)")
     args = parser.parse_args()
 
-    pmids_path = pystow.join("trialsynth", "results", name="intersection_pmids.txt")
+    pmids_path = RESULTS_RAW_DIR.parent / "intersection_pmids.txt"
 
     if pmids_path.exists():
         with open(pmids_path, "r") as f:
