@@ -10,7 +10,7 @@ from . import store
 from .config import Config
 from .fetch import Fetcher
 from ..base.ground import Grounder
-from .models import Condition, Edge, Trial
+from .models import Condition, Edge, Trial, PublicationEdge
 from .transform import Transformer
 from .validate import Validator
 
@@ -136,6 +136,7 @@ class Processor:
         self.entities: dict[type, list] = {}
 
         self.edges: list[Edge] = []
+        self.trial_publication_edges: list[PublicationEdge] = []
 
         self.reload_api_data: bool = reload_api_data
         self.store_samples: bool = store_samples
@@ -204,7 +205,7 @@ class Processor:
                     trial.entities.extend(entities)
 
     def create_edges(self):
-        """Creates edges connecting trials to related bioentities."""
+        """Creates edges connecting trials to related bioentities and pmids"""
 
         for trial in tqdm(
             self.trials,
@@ -226,7 +227,7 @@ class Processor:
                     intervention_sources[intv.curie] = []
                 intervention_sources[intv.curie].append(intv.grounding_source)
 
-            # Create edges
+            # Create intervention and condition edges
             added_conditions = set()
             added_interventions = set()
             for entity in trial.entities:
@@ -249,6 +250,17 @@ class Processor:
                         entity,
                         self.config.registry,
                         grounding_sources=grounding_sources,
+                    )
+                )
+
+            # Create trial - publication edges
+            # todo: add check against pmid - trial pairs from pubmed XML
+            for pmid, ref_type in trial.references:
+                if ref_type != "RESULT":
+                    self.trial_publication_edges.append(
+                        PublicationEdge(
+                            trial=trial.curie,
+                            publication=pmid,
                     )
                 )
 
@@ -375,6 +387,35 @@ class Processor:
             num_samples=self.config.num_sample_entries,
         )
 
+    def save_trial_publication_edges(self, path: Path, sample_path: Optional[Path] = None):
+        """Saves processed trial publication edges to a compressed tsv file
+
+        Parameters
+        ----------
+        path :
+            The path to save the processed trial publication edges
+        sample_path :
+            If provided, save the processed trial publication edges
+            (default: None).
+        """
+        edges = [
+            self.transformer.flatten_trial_publication_edge(edge)
+            for edge in self.trial_publication_edges
+        ]
+
+        store.save_data_as_flatfile(
+            # Remove duplicates and sort edges by trial and publication
+            sorted(set(edges), key=lambda x: (x[0], x[1])),
+            path=path,
+            headers=[
+                "trial_id",
+                "pmid",
+                "rel_type",
+            ],
+            sample_path=sample_path,
+            num_samples=self.config.num_sample_entries,
+        )
+
     def save_data(self):
         """Saves processed data to compressed tsv files."""
 
@@ -414,6 +455,12 @@ class Processor:
             sample_path=(
                 self.config.edges_sample_path if self.store_samples else None
             ),
+        )
+
+        # save trial - pmid relations as a compressed tsv
+        logger.info("Serializing and storing trial-publication edges to ")
+        self.save_trial_publication_edges(
+            self.config.trial_publication_edges_path,
         )
 
     def validate_data(self):

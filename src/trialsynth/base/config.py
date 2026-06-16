@@ -98,6 +98,12 @@ class Config:
         self.edges_sample_path: Path = self.get_sample_path(
             self.get_config("EDGES_SAMPLE_FILE")
         )
+        # Todo: get from self.get_config instead of hardcoding
+        self.trial_publication_edges_path = self.edges_path.with_name(
+            "trial_publication_edges.tsv.gz"
+        )
+        self.trial_publication_edges_sample_path = \
+            self.edges_sample_path.with_name("trial_publication_edges_sample.tsv")
 
         self.bio_entities_path = self.get_data_path(
             self.get_config("BIOENTITY_NODES_FILE")

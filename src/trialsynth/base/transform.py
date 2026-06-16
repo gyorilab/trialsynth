@@ -1,6 +1,6 @@
 from typing import Iterable, Tuple
 
-from .models import BioEntity, Edge, Node, Trial
+from .models import BioEntity, Edge, Node, Trial, PublicationEdge
 from .util import join_list_to_str
 
 
@@ -182,4 +182,25 @@ class Transformer:
             edge.rel_type,
             edge.source,
             join_list_to_str(edge.grounding_sources)
+        )
+
+    @staticmethod
+    def flatten_trial_publication_edge(trial_pub_edge: PublicationEdge) -> Tuple[str, str, str]:
+        """Flattens a PublicationEdge into a tuple of strings.
+
+        Parameters
+        ----------
+        trial_pub_edge :
+            The PublicationEdge to flatten
+
+        Returns
+        -------
+        :
+            A tuple of the flattened PublicationEdge. In order of trial_curie,
+            pmid, rel_type
+        """
+        return (
+            trial_pub_edge.trial,
+            trial_pub_edge.publication,
+            trial_pub_edge.rel_type,
         )
