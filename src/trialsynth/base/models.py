@@ -447,24 +447,18 @@ class PublicationEdge:
     Attributes
     ----------
     trial :
-        The trial that has a relation to a publication
+        The ID of the trial that has a relation to the publication
     publication :
-        The publication that is related to the trial.
-    source :
-        The source of the publication information. Either of "pubmed" or
-        "clinicaltrials"
+        The publication that is referenced by the trial
     rel_type :
         The type of relation.
     """
 
     def __init__(
         self,
-        trial: Trial,
+        trial: str,
         publication: str,
-        source: Literal["pubmed", "clinicaltrials"],  # todo: potentially remove
     ):
         self.trial = trial
         self.publication = publication
-        self.source = source
-
         self.rel_type = "has_publication"
