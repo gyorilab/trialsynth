@@ -29,9 +29,9 @@ PMID_NCT_LINKS = CLINICALTRIALS_DIR / "pubmed_nct_links.tsv.gz"
 logger = logging.getLogger('trialsynth.base.extract.build_pubmed_nct_links')
 
 
-def generate_pubmed_trial_links(
+def _pubmed_trial_links(
     xml_directory: Path | str,
-    download_missing: bool = False,
+    download_missing: bool,
     max_pairs: int | None = None,
     max_files: int | None = None,
 ) -> Iterator[tuple[str, str]]:
@@ -57,6 +57,47 @@ def generate_pubmed_trial_links(
                     trial_relations.add((pmid, nct_id))
                     if max_pairs is not None and len(trial_relations) >= max_pairs:
                         return
+
+
+def generate_pubmed_trial_links(
+    xml_directory: Path | str = XML_DIR,
+    download_missing: bool = False,
+    max_pairs: int | None = None,
+    max_files: int | None = None,
+):
+    """Downloads, finds, and caches NCT IDs from PubMed XML files
+
+    Parameters
+    ----------
+    xml_directory :
+        Path to the directory containing PubMed XML files.
+    download_missing :
+        If true, download missing PubMed XML files. Default: False.
+    max_pairs :
+        If set, stop after generating this many unique (PMID, NCT_ID) pairs (for testing).
+    max_files :
+        If set, only process this many XML files (for testing).
+    """
+    trial_relations = sorted(
+        _pubmed_trial_links(
+            xml_directory=xml_directory,
+            download_missing=download_missing,
+            max_pairs=max_pairs,
+            max_files=max_files,
+        )
+    )
+
+    chunk_size = 100000
+
+    logger.info(
+        f"Writing {len(trial_relations)} (PMID, NCT_ID) pairs to {PMID_NCT_LINKS}..."
+    )
+    with gzip.open(PMID_NCT_LINKS, "wt") as f:
+        writer = csv.writer(f, delimiter="\t")
+        writer.writerow(["PMID", "NCT_ID"])
+        for i in tqdm(range(0, len(trial_relations), chunk_size), desc="Writing TSV", unit="chunk"):
+            chunk = trial_relations[i : i + chunk_size]
+            writer.writerows(chunk)
 
 
 @click.command()
@@ -91,26 +132,12 @@ def main(
     xml_directory: Path,
     max_files: int | None,
 ) -> None:
-    trial_relations = sorted(
-        generate_pubmed_trial_links(
-            xml_directory=xml_directory,
-            download_missing=download_missing,
-            max_pairs=max_pairs,
-            max_files=max_files,
-        )
+    generate_pubmed_trial_links(
+        xml_directory=xml_directory,
+        download_missing=download_missing,
+        max_pairs=max_pairs,
+        max_files=max_files,
     )
-
-    chunk_size = 100000
-
-    logger.info(
-        f"Writing {len(trial_relations)} (PMID, NCT_ID) pairs to {PMID_NCT_LINKS}..."
-    )
-    with gzip.open(PMID_NCT_LINKS, "wt") as f:
-        writer = csv.writer(f, delimiter="\t")
-        writer.writerow(["PMID", "NCT_ID"])
-        for i in tqdm(range(0, len(trial_relations), chunk_size), desc="Writing TSV", unit="chunk"):
-            chunk = trial_relations[i : i + chunk_size]
-            writer.writerows(chunk)
 
 
 if __name__ == '__main__':
