@@ -141,7 +141,7 @@ def main():
                         help="Max PMIDs to process (default: 1000)")
     args = parser.parse_args()
 
-    pmids_path = RESULTS_DIR.join(name="intersection_pmids.txt")
+    pmids_path = RESULTS_DIR.join(name="intersection_pmids.csv")
 
     if pmids_path.exists():
         with open(pmids_path, "r") as f:
