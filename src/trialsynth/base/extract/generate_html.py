@@ -8,6 +8,7 @@ from trialsynth.base.extract.paths import RESULTS_GROUNDED_DIR, RESULTS_DIR
 
 logger = logging.getLogger(__name__)
 
+# todo: consider making a JINJA template for this
 HTML_TEMPLATE = '''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -140,10 +141,12 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 </html>
 '''
 
+
 def format_grounding(g):
     if not g: return ""
     url = f"https://bioregistry.io/{g['db']}:{g['id']}"
     return f'''<a href="{url}" target="_blank" class="grounding-badge">{g['db']}:{g['id']}</a>'''
+
 
 def build_evidence_hover(item):
     if not item or not isinstance(item, dict): return ""
@@ -156,6 +159,7 @@ def build_evidence_hover(item):
         "</span>"
     )
 
+
 def render_metric_row(name, value_text, item):
     evidence_hover = build_evidence_hover(item)
     grounding = format_grounding(item.get("grounding")) if isinstance(item, dict) else ""
@@ -163,6 +167,7 @@ def render_metric_row(name, value_text, item):
         f"<tr><td>{html.escape(str(name))}{evidence_hover} {grounding}</td>"
         f"<td style='text-align:right; font-weight:600;'>{html.escape(str(value_text))}</td></tr>"
     )
+
 
 def render_summary_item(result):
     if isinstance(result, str):
@@ -175,6 +180,7 @@ def render_summary_item(result):
         text = str(result)
         evidence_hover = ""
     return f"<div class='extraction'>{html.escape(str(text))}{evidence_hover}</div>"
+
 
 def render_criteria_item(item):
     if isinstance(item, str):
@@ -191,9 +197,10 @@ def render_criteria_item(item):
         grounding = ""
     return f"<div class='extraction'>{html.escape(str(text))}{evidence_hover} {grounding}</div>"
 
+
 def generate_study_html(study_id, data, is_first):
     active_class = ' active' if is_first else ''
-    
+
     # 1. Study Arms
     arm_html = ""
     for a in data.get('arms', []):
@@ -222,7 +229,7 @@ def generate_study_html(study_id, data, is_first):
     results_html += "<div style='margin:15px 0 10px 0; font-weight:bold; font-size:0.75rem; color:#2e6b33; text-transform:uppercase;'>Summary</div>"
     results_html += "".join([render_summary_item(r) for r in data.get('results', [])])
 
-    # 3. Safety 
+    # 3. Safety
     safety_html = ""
     for a in data.get('arms', []):
         ae_rows = "".join([render_metric_row(ae.get('event_name'), ae.get('value_text'), ae) for ae in a.get('adverse_events', [])])
@@ -279,6 +286,7 @@ def generate_study_html(study_id, data, is_first):
 
     return f'<div id="{study_id}" class="study-content{active_class}">{header}{grid}</div>'
 
+
 def main():
     parser = argparse.ArgumentParser(description="Generate HTML dashboard.")
     parser.add_argument("--input-dir", default=str(RESULTS_GROUNDED_DIR.base))
@@ -291,9 +299,9 @@ def main():
     output_html = Path(args.output_html)
     json_files = sorted(results_dir.glob('*.json'))
     studies = []
-    
+
     logger.info(f"Scanning {len(json_files)} JSON files...")
-    
+
     for fname in json_files:
         with open(fname, encoding='utf-8') as f:
             try:
@@ -311,11 +319,12 @@ def main():
 
     options = '\n'.join([f'<option value="{s[0]}">{s[1]}</option>' for s in studies])
     studies_content = '\n'.join([generate_study_html(s[0], s[2], i == 0) for i, s in enumerate(studies)])
-    
+
     with open(output_html, 'w', encoding='utf-8') as f:
         f.write(HTML_TEMPLATE.replace('{{OPTIONS}}', options).replace('{{STUDIES}}', studies_content))
-    
+
     logger.info(f"Dashboard generated with {len(studies)} studies -> {output_html}")
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')

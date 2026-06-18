@@ -8,7 +8,7 @@ from trialsynth.base.resources import DEFAULT_CONFIG_PATH
 
 logger = logging.getLogger(__name__)
 
-
+# todo: consider replacing with pystow
 HOME_DIR = Path(os.path.expanduser("~"))
 
 

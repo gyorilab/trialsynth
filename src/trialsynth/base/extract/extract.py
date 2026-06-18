@@ -83,8 +83,6 @@ def best_sentence_for_anchor(anchor: str, sentences: list[str]) -> str:
     return best_sentence
 
 
-
-
 def resolve_anchors(raw: dict, sentences: list[str]) -> dict:
     """
     Walk the raw LLM output and replace every evidence_anchor string with

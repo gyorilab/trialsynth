@@ -1,13 +1,9 @@
-"""
-Code for extracting NCT IDs from pubmed XML files
+"""Code for extracting NCT IDs from pubmed XML files
 
 Creates PMID -> NCT ID relations from the PubMed XML baseline archive.
 
 Output: pubmed_nct_links.tsv.gz
-
-# todo: long term plan:
-Duplicate code for now, with a plan to refactor this code (together with similar
-code in CoGex and INDRA DB) into INDRA, which has similar code.
+Format: TSV with columns PMID and NCT_ID, compressed with gzip.
 """
 import csv
 import gzip
@@ -94,7 +90,7 @@ def generate_pubmed_trial_links(
         If true, download missing PubMed XML files. Default: False.
     reprocess :
         If true, reprocess the PubMed XML files even if the NCT IDs are already
-        cached in PMID_NCT_LINKS. This will overwrite the existing 
+        cached in PMID_NCT_LINKS. This will overwrite the existing
         PMID_NCT_LINKS TSV file. Default: False.
     max_files :
         If set, only process this many XML files (for testing).
