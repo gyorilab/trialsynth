@@ -209,8 +209,7 @@ def main():
     parser.add_argument("--output-dir", default=None, help="Override output directory")
     args = parser.parse_args()
 
-    content_dir = CONTENT_TXT_DIR
-    output_dir = Path(args.output_dir) if args.output_dir else RESULTS_RAW_DIR
+    output_dir = Path(args.output_dir) if args.output_dir else RESULTS_RAW_DIR.base
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if args.pmids:
@@ -224,6 +223,7 @@ def main():
     client = OpenAI()
     stats = []
 
+    content_dir = CONTENT_TXT_DIR.base
     for pmid in target_pmids:
         row = process_pmid(pmid, client, content_dir, output_dir)
         stats.append(row)
@@ -241,7 +241,7 @@ def main():
     logger.info(f"{'AVG/paper':<15} {total_in // max(1, len(completed)):>15} {total_out // max(1, len(completed)):>15}")
     logger.info("=" * 60)
 
-    csv_path = RESULTS_RAW_DIR.parent / "token_comparison_anchor.csv"
+    csv_path = RESULTS_RAW_DIR.base.parent / "token_comparison_anchor.csv"
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["pmid", "status", "input_tokens", "output_tokens"])
         writer.writeheader()

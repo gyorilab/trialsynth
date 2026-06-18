@@ -27,7 +27,8 @@ from indra.literature.pmc_client import id_lookup, get_text_s3
 from indra.literature.pubmed_client import get_abstract
 
 from trialsynth.base.extract.extract import process_pmid
-from trialsynth.base.extract.paths import CLINICALTRIALS_DIR, RESULTS_RAW_DIR
+from trialsynth.base.extract.paths import CLINICALTRIALS_DIR, \
+    RESULTS_RAW_DIR, RESULTS_DIR
 
 output_dir = pystow.module("trialsynth", "results", "raw")
 txt_archive = pystow.module("trialsynth", "content", "txt")
@@ -134,7 +135,7 @@ def run_extraction(pmids: list[str]):
         total_out = sum(r["output_tokens"] for r in stats if r["status"] == "completed")
         logger.info(f"Avg output tokens/paper: {total_out // statuses['completed']}")
 
-    csv_path = RESULTS_RAW_DIR.parent / "extraction_stats.csv"
+    csv_path = RESULTS_DIR.join(name="extraction_stats.csv")
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(
             f, fieldnames=["pmid", "status", "input_tokens", "output_tokens"]
@@ -150,7 +151,7 @@ def main():
                         help="Max PMIDs to process (default: 1000)")
     args = parser.parse_args()
 
-    pmids_path = RESULTS_RAW_DIR.parent / "intersection_pmids.txt"
+    pmids_path = RESULTS_DIR.join(name="intersection_pmids.txt")
 
     if pmids_path.exists():
         with open(pmids_path, "r") as f:
