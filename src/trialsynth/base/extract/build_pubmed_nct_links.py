@@ -80,6 +80,7 @@ def _pubmed_trial_links(
 def generate_pubmed_trial_links(
     xml_directory: Path | str = XML_DIR,
     download_missing: bool = False,
+    reprocess: bool = False,
     max_files: int | None = None,
     max_workers: int = 8,
 ):
@@ -91,12 +92,19 @@ def generate_pubmed_trial_links(
         Path to the directory containing PubMed XML files.
     download_missing :
         If true, download missing PubMed XML files. Default: False.
+    reprocess :
+        If true, reprocess the PubMed XML files even if the NCT IDs are already
+        cached in PMID_NCT_LINKS. This will overwrite the existing 
+        PMID_NCT_LINKS TSV file. Default: False.
     max_files :
         If set, only process this many XML files (for testing).
     max_workers :
         Maximum number of worker processes to use for parallel processing.
         Default: 8.
     """
+    if not reprocess and PMID_NCT_LINKS.exists():
+        logger.info(f"PubMed NCT links already processed, skipping. Use --reprocess to overwrite.")
+        return
     trial_relations = sorted(
         _pubmed_trial_links(
             xml_directory=xml_directory,
@@ -127,6 +135,12 @@ def generate_pubmed_trial_links(
     help="Download missing PubMed XML baseline/update files before parsing.",
 )
 @click.option(
+    "--reprocess/--no-reprocess",
+    default=False,
+    show_default=True,
+    help="Reprocess the PubMed XML files even if the NCT IDs are already cached in PMID_NCT_LINKS.",
+)
+@click.option(
     "--xml-directory",
     type=click.Path(path_type=Path, file_okay=False),
     default=XML_DIR,
@@ -147,11 +161,13 @@ def generate_pubmed_trial_links(
 )
 def main(
     download_missing: bool,
+    reprocess: bool,
     xml_directory: Path,
     max_files: int | None,
     max_workers: int,
 ) -> None:
     generate_pubmed_trial_links(
+        reprocess=reprocess,
         xml_directory=xml_directory,
         download_missing=download_missing,
         max_files=max_files,

@@ -18,7 +18,7 @@ from ..base.models import (
 )
 from .rest_api_response_models import UnflattenedTrial
 from .config import CTConfig
-from ..base.extract.build_pubmed_nct_links import generate_pubmed_trial_links
+from ..base.extract.build_pubmed_nct_links import generate_pubmed_trial_links, PMID_NCT_LINKS
 
 logger = logging.getLogger(__name__)
 
@@ -57,34 +57,37 @@ class CTFetcher(Fetcher):
         trial_path = self.config.raw_data_path
         if trial_path.is_file() and not reload:
             self.load_saved_data()
-            return
+        else:
+            # Data does not exist or reload is True, so fetch from API
+            logger.info(f"Fetching Clinicaltrials.gov data from {self.url}")
 
-        logger.info(f"Fetching Clinicaltrials.gov data from {self.url}")
+            try:
+                self._read_next_page()
 
-        try:
-            self._read_next_page()
-
-            pages = self.total_pages if max_pages is None else max_pages
-            page_size = self.api_parameters.get("pageSize")
-            with tqdm(
-                desc="Downloading ClinicalTrials.gov trials",
-                total=int(pages * page_size) if max_pages is None else max_pages * page_size,
-                unit="trial",
-                unit_scale=True,
-            ) as pbar:
-                pbar.update(page_size)
-                for _ in range(int(pages)):
-                    self._read_next_page()
+                pages = self.total_pages if max_pages is None else max_pages
+                page_size = self.api_parameters.get("pageSize")
+                with tqdm(
+                    desc="Downloading ClinicalTrials.gov trials",
+                    total=int(pages * page_size) if max_pages is None else max_pages * page_size,
+                    unit="trial",
+                    unit_scale=True,
+                ) as pbar:
                     pbar.update(page_size)
+                    for _ in range(int(pages)):
+                        self._read_next_page()
+                        pbar.update(page_size)
 
-        except Exception:
-            logger.exception(f"Could not fetch data from {self.url}")
-            raise
+            except Exception:
+                logger.exception(f"Could not fetch data from {self.url}")
+                raise
 
-        self.save_raw_data()
+            self.save_raw_data()
 
         # Run the PubMed link generation
-        generate_pubmed_trial_links(download_missing=True, max_files=max_pages)
+        if reload or not PMID_NCT_LINKS.exists():
+            generate_pubmed_trial_links(
+                download_missing=True, max_files=max_pages
+            )
 
     def _read_next_page(self, retries: int = 3) -> None:
 
