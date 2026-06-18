@@ -12,7 +12,7 @@ code in CoGex and INDRA DB) into INDRA, which has similar code.
 import csv
 import gzip
 import logging
-from collections.abc import Iterator
+from typing import Iterator
 from pathlib import Path
 
 import click
