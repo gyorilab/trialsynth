@@ -466,7 +466,10 @@ class Processor:
         )
 
         # save trial - pmid relations as a compressed tsv
-        logger.info("Serializing and storing trial-publication edges to ")
+        logger.info(
+            f"Serializing and storing trial-publication edges to "
+            f"{self.config.trial_publication_edges_path}"
+        )
         self.save_trial_publication_edges(
             self.config.trial_publication_edges_path,
         )
