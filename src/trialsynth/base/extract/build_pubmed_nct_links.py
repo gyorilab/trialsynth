@@ -65,6 +65,7 @@ def _pubmed_trial_links(
     pair_lists = process_map(
         _process_one_xml_file,
         xml_files,
+        chunksize=20,
         desc="Processing XML files",
         unit="file",
         max_workers=min(16, os.cpu_count() or 1),
