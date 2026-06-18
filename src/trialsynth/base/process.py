@@ -264,7 +264,7 @@ class Processor:
             # present both from pubmed and clinicaltrials.gov. Data is
             # downloaded in the CTFetcher.get_api_data method
             for pmid, ref_type in trial.references:
-                if ref_type == "RESULT" and (pmid, trial.ns_id) in pubmed_trial_links:
+                if ref_type.lower() == "result" and (pmid, trial.ns_id) in pubmed_trial_links:
                     self.trial_publication_edges.append(
                         PublicationEdge(
                             trial=trial.curie,
