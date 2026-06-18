@@ -18,6 +18,7 @@ from ..base.models import (
 )
 from .rest_api_response_models import UnflattenedTrial
 from .config import CTConfig
+from ..base.extract.build_pubmed_nct_links import generate_pubmed_trial_links
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,9 @@ class CTFetcher(Fetcher):
             raise
 
         self.save_raw_data()
+
+        # Run the PubMed link generation
+        generate_pubmed_trial_links(download_missing=True, max_files=max_pages)
 
     def _read_next_page(self, retries: int = 3) -> None:
 
@@ -295,8 +299,6 @@ class CTFetcher(Fetcher):
 
             # References
             references = rest_trial.protocol_section.references_module.references
-            if references:
-                any_references = True
 
             trial.references += [
                 (ref.pmid, ref.type) for ref in references if ref.pmid is not None

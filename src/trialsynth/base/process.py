@@ -1,3 +1,5 @@
+import csv
+import gzip
 import logging
 from pathlib import Path
 from typing import Callable, Dict, Optional
@@ -13,6 +15,7 @@ from ..base.ground import Grounder
 from .models import Condition, Edge, Trial, PublicationEdge
 from .transform import Transformer
 from .validate import Validator
+from ..base.extract.build_pubmed_nct_links import PMID_NCT_LINKS
 
 logger = logging.getLogger(__name__)
 
@@ -206,6 +209,10 @@ class Processor:
 
     def create_edges(self):
         """Creates edges connecting trials to related bioentities and pmids"""
+        with gzip.open(PMID_NCT_LINKS, "rt") as f:
+            csv_reader = csv.reader(f, delimiter="\t")
+            _ = next(csv_reader)
+            pubmed_trial_links = set(tuple(row) for row in csv_reader)
 
         for trial in tqdm(
             self.trials,
@@ -253,16 +260,17 @@ class Processor:
                     )
                 )
 
-            # Create trial - publication edges
-            # todo: add check against pmid - trial pairs from pubmed XML
+            # Create trial - publication edges; but only the ones that are
+            # present both from pubmed and clinicaltrials.gov. Data is
+            # downloaded in the CTFetcher.get_api_data method
             for pmid, ref_type in trial.references:
-                if ref_type != "RESULT":
+                if ref_type == "RESULT" and (pmid, trial.ns_id) in pubmed_trial_links:
                     self.trial_publication_edges.append(
                         PublicationEdge(
                             trial=trial.curie,
                             publication=pmid,
+                        )
                     )
-                )
 
     def save_trial_data(
         self, path: Path, sample_path: Optional[Path] = None
