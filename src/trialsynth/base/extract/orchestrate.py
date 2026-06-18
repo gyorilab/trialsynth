@@ -16,7 +16,6 @@ Re-running safely resumes from wherever it left off.
 import csv
 import gzip
 import logging
-import pickle
 import argparse
 from collections import Counter
 
@@ -25,51 +24,45 @@ from openai import OpenAI
 from indra.literature.pmc_client import id_lookup, get_text_s3
 from indra.literature.pubmed_client import get_abstract
 
+from trialsynth.ctgov.config import CTConfig
 from trialsynth.base.extract.extract import process_pmid
-from trialsynth.base.extract.paths import CLINICALTRIALS_DIR, \
-    RESULTS_RAW_DIR, RESULTS_DIR, CONTENT_TXT_DIR
+from trialsynth.base.extract.paths import RESULTS_RAW_DIR, RESULTS_DIR, \
+    CONTENT_TXT_DIR
 
-trial_pkl_path = CLINICALTRIALS_DIR / "clinicaltrials.pkl.gz"
-pubmed_nct_links_path = CLINICALTRIALS_DIR / "pubmed_nct_links.csv"
 
 logger = logging.getLogger('trialsynth.base.extract.orchestrate')
 
 
 def get_intersection_pmids(limit: int = None) -> list[str]:
-    """Return intersection PMIDs (registry RESULT links intersect PubMed scan),
-    up to `limit`."""
+    """Return PMIDs defined from the output of
 
-    logger.info("Loading registry result links...")
-    registry_result_links = set()
-    with gzip.open(trial_pkl_path, "rb") as f:
-        trials = pickle.load(f)
-    for trial in trials:
-        if trial.references:
-            for ref in trial.references:
-                pmid = ref[0] if isinstance(ref, (tuple, list)) else ref
-                ref_type = (
-                    str(ref[1]).upper()
-                    if isinstance(ref, (tuple, list)) and len(ref) > 1
-                    else ""
-                )
-                if pmid and "RESULT" in ref_type:
-                    registry_result_links.add(pmid)
+    Parameters
+    ----------
+    limit :
+        Optional limit on the number of PMIDs to return. If None, return all.
 
-    logger.info("Loading PubMed scan links...")
-    pubmed_pmids = set()
-    with open(pubmed_nct_links_path, "r") as f:
+    Returns
+    -------
+    :
+        List of PMIDs that are in both the registry result links and the PubMed
+        scan links.
+    """
+
+    ct_config = CTConfig()
+    if not ct_config.trial_publication_edges_path.exists():
+        raise FileNotFoundError(
+            f"Trial-publication edges file not found: "
+            f"{ct_config.trial_publication_edges_path}. Must run clinicaltrials "
+            f"pipeline before running this script."
+        )
+    with gzip.open(ct_config.trial_publication_edges_path, "rt") as f:
         reader = csv.reader(f)
-        next(reader)
-        for row in reader:
-            if len(row) >= 2:
-                pubmed_pmids.add(row[0])
+        _ = next(reader)
+        intersection = {
+            row[1] for row in reader if row[1]
+        }
 
-    intersection = sorted(registry_result_links & pubmed_pmids)
-    logger.info(f"Intersection size: {len(intersection)}.")
-    if limit:
-        intersection = intersection[:limit]
-        logger.info(f"Capped to {len(intersection)} PMIDs.")
-    return intersection
+    return sorted(intersection)[:limit] if limit else sorted(intersection)
 
 
 def download_texts(pmids: list[str]):
