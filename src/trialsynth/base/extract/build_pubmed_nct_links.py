@@ -12,12 +12,13 @@ code in CoGex and INDRA DB) into INDRA, which has similar code.
 import csv
 import gzip
 import logging
-from typing import Iterator
+import os
 from pathlib import Path
 
 import click
 from lxml import etree
 from tqdm import tqdm
+from tqdm.contrib.concurrent import process_map
 
 from indra.literature import pubmed_client
 from trialsynth.base.extract.paths import CLINICALTRIALS_DIR, XML_DIR
@@ -29,12 +30,27 @@ PMID_NCT_LINKS = CLINICALTRIALS_DIR / "pubmed_nct_links.tsv.gz"
 logger = logging.getLogger('trialsynth.base.extract.build_pubmed_nct_links')
 
 
+def _process_one_xml_file(xml_file: Path) -> list[tuple[str, str]]:
+    import tqdm as tqdm_module
+
+    os.environ["TQDM_DISABLE"] = "1"
+    # TQDM_DISABLE is read at tqdm import time; patch in worker to silence inner bars.
+    tqdm_module.tqdm = lambda iterable, *args, **kwargs: iterable
+
+    tree = etree.parse(xml_file)
+    nct_ids_by_pmid = pubmed_client.get_nct_ids_from_full_xml(tree)
+    return [
+        (pmid, nct_id)
+        for pmid, nct_ids in nct_ids_by_pmid.items()
+        for nct_id in nct_ids
+    ]
+
+
 def _pubmed_trial_links(
     xml_directory: Path | str,
     download_missing: bool,
-    max_pairs: int | None = None,
     max_files: int | None = None,
-) -> Iterator[tuple[str, str]]:
+) -> set[tuple[str, str]]:
     xml_directory = Path(xml_directory)
     xml_files = list(xml_directory.glob("pubmed*.xml.gz"))
     if not xml_files or download_missing:
@@ -46,23 +62,22 @@ def _pubmed_trial_links(
 
     logger.info(f"Found {len(xml_files)} XML files to process.")
 
-    trial_relations = set()
-    for xml_file in tqdm(xml_files, desc="Processing XML files", unit="file"):
-        tree = etree.parse(xml_file)
-        nct_ids_by_pmid = pubmed_client.get_nct_ids_from_full_xml(tree)
-        for pmid, nct_ids in nct_ids_by_pmid.items():
-            for nct_id in nct_ids:
-                if (pmid, nct_id) not in trial_relations:
-                    yield (pmid, nct_id)
-                    trial_relations.add((pmid, nct_id))
-                    if max_pairs is not None and len(trial_relations) >= max_pairs:
-                        return
+    pair_lists = process_map(
+        _process_one_xml_file,
+        xml_files,
+        desc="Processing XML files",
+        unit="file",
+        max_workers=min(16, os.cpu_count() or 1),
+    )
+    trial_relations: set[tuple[str, str]] = set()
+    for pairs in pair_lists:
+        trial_relations.update(pairs)
+    return trial_relations
 
 
 def generate_pubmed_trial_links(
     xml_directory: Path | str = XML_DIR,
     download_missing: bool = False,
-    max_pairs: int | None = None,
     max_files: int | None = None,
 ):
     """Downloads, finds, and caches NCT IDs from PubMed XML files
@@ -73,8 +88,6 @@ def generate_pubmed_trial_links(
         Path to the directory containing PubMed XML files.
     download_missing :
         If true, download missing PubMed XML files. Default: False.
-    max_pairs :
-        If set, stop after generating this many unique (PMID, NCT_ID) pairs (for testing).
     max_files :
         If set, only process this many XML files (for testing).
     """
@@ -82,12 +95,11 @@ def generate_pubmed_trial_links(
         _pubmed_trial_links(
             xml_directory=xml_directory,
             download_missing=download_missing,
-            max_pairs=max_pairs,
             max_files=max_files,
         )
     )
 
-    chunk_size = 100000
+    chunk_size = 10000
 
     logger.info(
         f"Writing {len(trial_relations)} (PMID, NCT_ID) pairs to {PMID_NCT_LINKS}..."
@@ -108,12 +120,6 @@ def generate_pubmed_trial_links(
     help="Download missing PubMed XML baseline/update files before parsing.",
 )
 @click.option(
-    "--max-pairs",
-    type=int,
-    default=None,
-    help="Stop after generating this many unique (PMID, NCT_ID) pairs (for testing).",
-)
-@click.option(
     "--xml-directory",
     type=click.Path(path_type=Path, file_okay=False),
     default=XML_DIR,
@@ -128,14 +134,12 @@ def generate_pubmed_trial_links(
 )
 def main(
     download_missing: bool,
-    max_pairs: int | None,
     xml_directory: Path,
     max_files: int | None,
 ) -> None:
     generate_pubmed_trial_links(
         xml_directory=xml_directory,
         download_missing=download_missing,
-        max_pairs=max_pairs,
         max_files=max_files,
     )
 
