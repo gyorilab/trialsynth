@@ -50,6 +50,7 @@ def _pubmed_trial_links(
     xml_directory: Path | str,
     download_missing: bool,
     max_files: int | None = None,
+    max_workers: int = 8,
 ) -> set[tuple[str, str]]:
     xml_directory = Path(xml_directory)
     xml_files = list(xml_directory.glob("pubmed*.xml.gz"))
@@ -68,7 +69,7 @@ def _pubmed_trial_links(
         chunksize=20,
         desc="Processing XML files",
         unit="file",
-        max_workers=min(16, os.cpu_count() or 1),
+        max_workers=min(max_workers, os.cpu_count() or 1),
     )
     trial_relations: set[tuple[str, str]] = set()
     for pairs in pair_lists:
@@ -80,6 +81,7 @@ def generate_pubmed_trial_links(
     xml_directory: Path | str = XML_DIR,
     download_missing: bool = False,
     max_files: int | None = None,
+    max_workers: int = 8,
 ):
     """Downloads, finds, and caches NCT IDs from PubMed XML files
 
@@ -91,12 +93,16 @@ def generate_pubmed_trial_links(
         If true, download missing PubMed XML files. Default: False.
     max_files :
         If set, only process this many XML files (for testing).
+    max_workers :
+        Maximum number of worker processes to use for parallel processing.
+        Default: 8.
     """
     trial_relations = sorted(
         _pubmed_trial_links(
             xml_directory=xml_directory,
             download_missing=download_missing,
             max_files=max_files,
+            max_workers=max_workers,
         )
     )
 
@@ -133,15 +139,23 @@ def generate_pubmed_trial_links(
     default=None,
     help="Max total XML files on disk to use (cached + newly downloaded; for testing).",
 )
+@click.option(
+    "--max-workers",
+    type=int,
+    default=8,
+    help="Maximum number of worker processes to use for parallel processing.",
+)
 def main(
     download_missing: bool,
     xml_directory: Path,
     max_files: int | None,
+    max_workers: int,
 ) -> None:
     generate_pubmed_trial_links(
         xml_directory=xml_directory,
         download_missing=download_missing,
         max_files=max_files,
+        max_workers=max_workers,
     )
 
 
