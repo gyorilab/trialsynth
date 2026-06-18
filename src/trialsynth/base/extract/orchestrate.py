@@ -21,17 +21,14 @@ import argparse
 from collections import Counter
 
 import tqdm
-import pystow
 from openai import OpenAI
 from indra.literature.pmc_client import id_lookup, get_text_s3
 from indra.literature.pubmed_client import get_abstract
 
 from trialsynth.base.extract.extract import process_pmid
 from trialsynth.base.extract.paths import CLINICALTRIALS_DIR, \
-    RESULTS_RAW_DIR, RESULTS_DIR
+    RESULTS_RAW_DIR, RESULTS_DIR, CONTENT_TXT_DIR
 
-output_dir = pystow.module("trialsynth", "results", "raw")
-txt_archive = pystow.module("trialsynth", "content", "txt")
 trial_pkl_path = CLINICALTRIALS_DIR / "clinicaltrials.pkl.gz"
 pubmed_nct_links_path = CLINICALTRIALS_DIR / "pubmed_nct_links.csv"
 
@@ -79,7 +76,7 @@ def download_texts(pmids: list[str]):
     logger.info(f"Downloading text for {len(pmids)} PMIDs...")
 
     for pmid in tqdm.tqdm(pmids):
-        if txt_archive.join(name=f"{pmid}.txt").exists():
+        if CONTENT_TXT_DIR.join(name=f"{pmid}.txt").exists():
             continue
 
         try:
@@ -98,7 +95,7 @@ def download_texts(pmids: list[str]):
                     source = "ABS"
 
             if text:
-                txt_archive.join(name=f"{pmid}.txt").write_text(text, encoding="utf-8")
+                CONTENT_TXT_DIR.join(name=f"{pmid}.txt").write_text(text, encoding="utf-8")
                 logger.info(f"{pmid} ({source}) - OK")
             else:
                 logger.info(f"{pmid} - NO CONTENT")
@@ -113,7 +110,7 @@ def run_extraction(pmids: list[str]):
     stats = []
 
     for pmid in pmids:
-        row = process_pmid(pmid, client, txt_archive.base, output_dir.base)
+        row = process_pmid(pmid, client, CONTENT_TXT_DIR.base, RESULTS_RAW_DIR.base)
         stats.append(row)
         if row["status"] == "ok":
             logger.info(f"  {pmid} extracted ({row['output_tokens']} output tokens)")

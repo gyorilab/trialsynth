@@ -256,8 +256,8 @@ def ground_json(
 def main():
     """CLI entry point: ground all JSON files in input-dir and write to output-dir."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input-dir", type=Path, default=RESULTS_RAW_DIR)
-    parser.add_argument("--output-dir", type=Path, default=RESULTS_GROUNDED_DIR)
+    parser.add_argument("--input-dir", type=Path, default=RESULTS_RAW_DIR.base)
+    parser.add_argument("--output-dir", type=Path, default=RESULTS_GROUNDED_DIR.base)
     parser.add_argument("--pmid-list", type=Path, default=None,
                         help="Optional file with one PMID per line for pilot/smoke subsets.")
     parser.add_argument("--max-files", type=int, default=None,

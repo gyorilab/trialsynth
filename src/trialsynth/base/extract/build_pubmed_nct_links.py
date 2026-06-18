@@ -78,7 +78,7 @@ def _pubmed_trial_links(
 
 
 def generate_pubmed_trial_links(
-    xml_directory: Path | str = XML_DIR,
+    xml_directory: Path | str = XML_DIR.base,
     download_missing: bool = False,
     reprocess: bool = False,
     max_files: int | None = None,
@@ -143,7 +143,7 @@ def generate_pubmed_trial_links(
 @click.option(
     "--xml-directory",
     type=click.Path(path_type=Path, file_okay=False),
-    default=XML_DIR,
+    default=XML_DIR.base,
     show_default=True,
     help="Directory containing PubMed XML .xml.gz files.",
 )

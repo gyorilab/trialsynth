@@ -4,7 +4,7 @@ import html
 import logging
 from pathlib import Path
 
-from trialsynth.base.extract.paths import RESULTS_GROUNDED_DIR, RESULTS_RAW_DIR
+from trialsynth.base.extract.paths import RESULTS_GROUNDED_DIR, RESULTS_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -281,10 +281,10 @@ def generate_study_html(study_id, data, is_first):
 
 def main():
     parser = argparse.ArgumentParser(description="Generate HTML dashboard.")
-    default_input = str(RESULTS_GROUNDED_DIR)
-    default_output = str(RESULTS_RAW_DIR.parent / "dashboard.html")
-    parser.add_argument("--input-dir", default=default_input)
-    parser.add_argument("--output-html", default=default_output)
+    parser.add_argument("--input-dir", default=str(RESULTS_GROUNDED_DIR.base))
+    parser.add_argument(
+        "--output-html", default=str(RESULTS_DIR.join(name="dashboard.html"))
+    )
     args = parser.parse_args()
 
     results_dir = Path(args.input_dir)

@@ -18,16 +18,13 @@ from pathlib import Path
 
 from openai import OpenAI
 
-from trialsynth.base.extract.paths import CONTENT_TXT_DIR, RESULTS_RAW_DIR, RESULTS_GROUNDED_DIR
+from trialsynth.base.extract.resources import TRIAL_RESULT_SCHEMA_ANCHOR
+from trialsynth.base.extract.paths import CONTENT_TXT_DIR, RESULTS_RAW_DIR, \
+    RESULTS_GROUNDED_DIR, RESULTS_DIR
 
 logger = logging.getLogger('trialsynth.base.extract.extract')
 
 LLM_MODEL = "gpt-5.4-mini"
-
-_RESOURCES_DIR = Path(__file__).parent / "resources"
-TRIAL_RESULT_SCHEMA_ANCHOR: dict = json.loads(
-    (_RESOURCES_DIR / "trial_result_schema_anchor.json").read_text(encoding="utf-8")
-)
 
 
 def split_sentences(text: str) -> list[str]:
@@ -215,7 +212,7 @@ def main():
     if args.pmids:
         target_pmids = args.pmids
     else:
-        grounded_dir = RESULTS_GROUNDED_DIR
+        grounded_dir = RESULTS_GROUNDED_DIR.base
         target_pmids = [f.stem for f in sorted(grounded_dir.glob("*.json"))][:10]
 
     logger.info(f"Running anchor extraction on {len(target_pmids)} PMIDs...")
@@ -241,7 +238,7 @@ def main():
     logger.info(f"{'AVG/paper':<15} {total_in // max(1, len(completed)):>15} {total_out // max(1, len(completed)):>15}")
     logger.info("=" * 60)
 
-    csv_path = RESULTS_RAW_DIR.base.parent / "token_comparison_anchor.csv"
+    csv_path = RESULTS_DIR.join(name="token_comparison_anchor.csv")
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["pmid", "status", "input_tokens", "output_tokens"])
         writer.writeheader()
