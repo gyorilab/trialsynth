@@ -20,7 +20,7 @@ from indra.literature import pubmed_client
 from trialsynth.base.extract.paths import CLINICALTRIALS_DIR, XML_DIR
 
 
-PMID_NCT_LINKS = CLINICALTRIALS_DIR / "pubmed_nct_links.tsv.gz"
+PMID_NCT_LINKS = CLINICALTRIALS_DIR.join(name="pubmed_nct_links.tsv.gz")
 
 
 logger = logging.getLogger('trialsynth.base.extract.build_pubmed_nct_links')
