@@ -156,6 +156,7 @@ class Grounder:
         self, entity: BioEntity, *, db_ns, db_id: str, norm_text: str
     ) -> BioEntity:
         grounded_entity = copy.deepcopy(entity)
+        grounded_entity.grounding_source = "gilda"
         grounded_entity.ns = db_ns
         grounded_entity.ns_id = db_id
         grounded_entity.grounded_term = norm_text
@@ -203,6 +204,7 @@ class Grounder:
                     yield from self._yield_entity(entity, matches[0])
         # If the entity already has a namespace and ID, we assume it's already grounded
         elif entity.ns and entity.ns_id:
+            assert entity.grounding_source, "Grounding source must be provided if entity has namespace and ID"
             yield entity
         # Otherwise, we ground the entity using Gilda
         else:

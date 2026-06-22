@@ -1,9 +1,10 @@
+import csv
+import gzip
 import logging
 from pathlib import Path
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional
 
 import click
-import gilda
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
@@ -11,9 +12,10 @@ from . import store
 from .config import Config
 from .fetch import Fetcher
 from ..base.ground import Grounder
-from .models import Condition, Intervention, Edge, Trial
+from .models import Condition, Edge, Trial, PublicationEdge
 from .transform import Transformer
 from .validate import Validator
+from ..base.extract.build_pubmed_nct_links import PMID_NCT_LINKS
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +139,7 @@ class Processor:
         self.entities: dict[type, list] = {}
 
         self.edges: list[Edge] = []
+        self.trial_publication_edges: list[PublicationEdge] = []
 
         self.reload_api_data: bool = reload_api_data
         self.store_samples: bool = store_samples
@@ -183,7 +186,6 @@ class Processor:
         self.intervention_grounder.ground("stuff")
         logger.info("Done.")
 
-
         for ent_type, entities, grounder in zip(
             self.entities.keys(),
             self.entities.values(),
@@ -205,9 +207,12 @@ class Processor:
 
                     trial.entities.extend(entities)
 
-
     def create_edges(self):
-        """Creates edges connecting trials to related bioentities."""
+        """Creates edges connecting trials to related bioentities and pmids"""
+        with gzip.open(PMID_NCT_LINKS, "rt") as f:
+            csv_reader = csv.reader(f, delimiter="\t")
+            _ = next(csv_reader)
+            pubmed_trial_links = set(tuple(row) for row in csv_reader)
 
         for trial in tqdm(
             self.trials,
@@ -215,7 +220,57 @@ class Processor:
             unit="trial",
             unit_scale=True,
         ):
-            self.edges.extend([Edge(trial, entity, self.config.registry) for entity in trial.entities])
+            # Group conditions and interventions of same grounding together, and
+            # create edges from trial to each unique grounded entity with a list
+            # of the sources of that grounding e.g., ['mesh', 'gilda']
+            condition_sources = {}
+            intervention_sources = {}
+            for cond in trial.conditions:
+                if cond.curie not in condition_sources:
+                    condition_sources[cond.curie] = []
+                condition_sources[cond.curie].append(cond.grounding_source)
+            for intv in trial.interventions:
+                if intv.curie not in intervention_sources:
+                    intervention_sources[intv.curie] = []
+                intervention_sources[intv.curie].append(intv.grounding_source)
+
+            # Create intervention and condition edges
+            added_conditions = set()
+            added_interventions = set()
+            for entity in trial.entities:
+                if isinstance(entity, Condition):
+                    if entity.curie in added_conditions:
+                        continue
+                    added_conditions.add(entity.curie)
+                    grounding_sources = condition_sources.get(entity.curie, [])
+                else:
+                    if entity.curie in added_interventions:
+                        continue
+                    added_interventions.add(entity.curie)
+                    grounding_sources = intervention_sources.get(
+                        entity.curie, []
+                    )
+
+                self.edges.append(
+                    Edge(
+                        trial,
+                        entity,
+                        self.config.registry,
+                        grounding_sources=grounding_sources,
+                    )
+                )
+
+            # Create trial - publication edges; but only the ones that are
+            # present both from pubmed and clinicaltrials.gov. Data is
+            # downloaded in the CTFetcher.get_api_data method
+            for pmid, ref_type in trial.references:
+                if ref_type.lower() == "result" and (pmid, trial.ns_id) in pubmed_trial_links:
+                    self.trial_publication_edges.append(
+                        PublicationEdge(
+                            trial=trial.curie,
+                            publication=pmid,
+                        )
+                    )
 
     def save_trial_data(
         self, path: Path, sample_path: Optional[Path] = None
@@ -327,13 +382,43 @@ class Processor:
         edges = [self.transformer.flatten_edge(edge) for edge in self.edges]
 
         store.save_data_as_flatfile(
-            list(set(edges)),
+            list(set(edges)),  # Remove duplicate edges
             path=path,
             headers=[
                 "from:CURIE",
                 "to:CURIE",
                 "rel_type:string",
                 "source_registry:string",
+                "grounding_sources:string[]",
+            ],
+            sample_path=sample_path,
+            num_samples=self.config.num_sample_entries,
+        )
+
+    def save_trial_publication_edges(self, path: Path, sample_path: Optional[Path] = None):
+        """Saves processed trial publication edges to a compressed tsv file
+
+        Parameters
+        ----------
+        path :
+            The path to save the processed trial publication edges
+        sample_path :
+            If provided, save the processed trial publication edges
+            (default: None).
+        """
+        edges = [
+            self.transformer.flatten_trial_publication_edge(edge)
+            for edge in self.trial_publication_edges
+        ]
+
+        store.save_data_as_flatfile(
+            # Remove duplicates and sort edges by trial and publication
+            sorted(set(edges), key=lambda x: (x[0], x[1])),
+            path=path,
+            headers=[
+                "trial_id",
+                "pmid",
+                "rel_type",
             ],
             sample_path=sample_path,
             num_samples=self.config.num_sample_entries,
@@ -378,6 +463,15 @@ class Processor:
             sample_path=(
                 self.config.edges_sample_path if self.store_samples else None
             ),
+        )
+
+        # save trial - pmid relations as a compressed tsv
+        logger.info(
+            f"Serializing and storing trial-publication edges to "
+            f"{self.config.trial_publication_edges_path}"
+        )
+        self.save_trial_publication_edges(
+            self.config.trial_publication_edges_path,
         )
 
     def validate_data(self):

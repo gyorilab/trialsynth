@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Optional, Union
+from typing import Optional, Union, Literal
 
 import indra.statements.agent as agent
 from bioregistry import curie_to_str
@@ -204,10 +204,11 @@ class BioEntity(Node):
         labels: list[str],
         origin: str,
         source: str,
+        grounding_source: Optional[Literal["gilda", "mesh"]] = None,
         description: Optional[str] = None,
         ns: Optional[str] = None,
         id: Optional[str] = None,
-        grounded_term: Optional[str] = None
+        grounded_term: Optional[str] = None,
     ):
         super().__init__(ns=ns, ns_id=id, source=source)
         self.labels = labels
@@ -215,6 +216,7 @@ class BioEntity(Node):
         self.description: str = description
         self.origin: str = origin
         self.grounded_term: str = grounded_term
+        self.grounding_source: str = grounding_source
 
 
 class Condition(BioEntity):
@@ -243,6 +245,7 @@ class Condition(BioEntity):
         text: str,
         origin: str,
         source: str,
+        grounding_source: Optional[Literal["gilda", "mesh"]] = None,
         description: Optional[str] = None,
         labels: Optional[list[str]] = None,
         ns: Optional[str] = None,
@@ -253,6 +256,7 @@ class Condition(BioEntity):
             labels=['condition'],
             origin=origin,
             source=source,
+            grounding_source=grounding_source,
             ns=ns,
             id=id,
             description=description,
@@ -302,6 +306,7 @@ class Intervention(BioEntity):
         text: str,
         origin: str,
         source: str,
+        grounding_source: Optional[Literal["gilda", "mesh"]] = None,
         description: Optional[str] = None,
         labels: Optional[list[str]] = None,
         ns: Optional[str] = None,
@@ -312,6 +317,7 @@ class Intervention(BioEntity):
             description=description,
             labels=['intervention'],
             origin=origin,
+            grounding_source=grounding_source,
             source=source,
             ns=ns,
             id=id
@@ -410,17 +416,49 @@ class Edge:
 
     Attributes
     ----------
-    trial: Trial
+    trial :
         The trial that has a relation to an entity
-    entity: BioEntity
+    entity :
         The bioentity that is related to the trial.
-    rel_type: str
+    rel_type :
         The type of relation.
+    grounding_sources :
+        The sources of grounding for the bioentity.
     """
 
-    def __init__(self, trial: Trial, entity: BioEntity,source: str):
+    def __init__(
+        self,
+        trial: Trial,
+        entity: BioEntity,
+        source: str,
+        grounding_sources: list[Literal["gilda", "mesh"]],
+    ):
         self.trial = trial
         self.entity = entity
         self.source = source
 
-        self.rel_type = f'has_{type(entity).__name__.lower()}'
+        self.rel_type = f"has_{type(entity).__name__.lower()}"
+        self.grounding_sources: list[Literal["gilda", "mesh"]] = grounding_sources
+
+
+class PublicationEdge:
+    """Edge between a trial and a publication
+
+    Attributes
+    ----------
+    trial :
+        The ID of the trial that has a relation to the publication
+    publication :
+        The publication that is referenced by the trial
+    rel_type :
+        The type of relation.
+    """
+
+    def __init__(
+        self,
+        trial: str,
+        publication: str,
+    ):
+        self.trial = trial
+        self.publication = publication
+        self.rel_type = "has_publication"
