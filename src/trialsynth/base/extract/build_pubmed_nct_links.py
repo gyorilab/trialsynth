@@ -20,7 +20,7 @@ from indra.literature import pubmed_client
 from trialsynth.base.extract.paths import CLINICALTRIALS_DIR, XML_DIR
 
 
-PMID_NCT_LINKS = CLINICALTRIALS_DIR / "pubmed_nct_links.tsv.gz"
+PMID_NCT_LINKS = CLINICALTRIALS_DIR.join(name="pubmed_nct_links.tsv.gz")
 
 
 logger = logging.getLogger('trialsynth.base.extract.build_pubmed_nct_links')
@@ -51,7 +51,12 @@ def _pubmed_trial_links(
     xml_directory = Path(xml_directory)
     xml_files = list(xml_directory.glob("pubmed*.xml.gz"))
     if not xml_files or download_missing:
-        pubmed_client.ensure_xml_files(xml_directory.as_posix())
+        pubmed_client.ensure_xml_files(
+            xml_directory.as_posix(),
+            raise_http_error=True,
+            raise_checksum_error=True,
+            max_workers=max_workers,
+        )
 
     xml_files = sorted(xml_directory.glob("pubmed*.xml.gz"))
     if max_files is not None:
