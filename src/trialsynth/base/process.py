@@ -1,3 +1,4 @@
+import re
 import csv
 import gzip
 import logging
@@ -18,6 +19,9 @@ from .validate import Validator
 from ..base.extract.build_pubmed_nct_links import PMID_NCT_LINKS
 
 logger = logging.getLogger(__name__)
+
+
+NCT_EXTRACT_RE = re.compile(r"NCT\s*(\d{8})", re.IGNORECASE)
 
 
 def run_processor(
@@ -271,6 +275,10 @@ class Processor:
                     )
                 )
 
+        def _extract_nct_ids(raw: str) -> list[str]:
+            # Return canonical NCT######## IDs found in a raw accession string
+            return [f"NCT{digits}" for digits in NCT_EXTRACT_RE.findall(raw)]
+
         # Create trial - publication edges from PubMed XML data
         for pmid, nct_id in tqdm(
             pubmed_trial_links,
@@ -278,13 +286,15 @@ class Processor:
             unit="publication",
             unit_scale=True,
         ):
-            self.trial_publication_edges.append(
-                PublicationEdge(
-                    trial=nct_id,
-                    publication=pmid,
-                    source="pubmed",
-                )
-            )
+            nct_ids = _extract_nct_ids(nct_id)
+            for nct_id in nct_ids:
+                self.trial_publication_edges.append(
+                    PublicationEdge(
+                        trial=nct_id,
+                            publication=pmid,
+                            source="pubmed",
+                        )
+                    )
 
     def save_trial_data(
         self, path: Path, sample_path: Optional[Path] = None
