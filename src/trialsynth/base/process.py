@@ -270,7 +270,7 @@ class Processor:
                     PublicationEdge(
                         trial=trial.curie,
                         publication=pmid,
-                        source="clinicaltrials.gov",
+                        source="ctgov",
                         ref_type=ref_type,
                     )
                 )
@@ -282,7 +282,7 @@ class Processor:
         # Create trial - publication edges from PubMed XML data
         for pmid, nct_id in tqdm(
             pubmed_trial_links,
-            desc="Processing PubMed data",
+            desc="Generating trial-PubMed edges from PubMed",
             unit="publication",
             unit_scale=True,
         ):
@@ -428,7 +428,7 @@ class Processor:
             The path to save the processed trial publication edges
         sample_path :
             If provided, save a sample of the processed trial publication edges
-            to this path. Defaults to None.
+            to this path. Default: None.
         """
         edges = [
             self.transformer.flatten_trial_publication_edge(edge)
