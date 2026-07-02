@@ -260,17 +260,31 @@ class Processor:
                     )
                 )
 
-            # Create trial - publication edges; but only the ones that are
-            # present both from pubmed and clinicaltrials.gov. Data is
-            # downloaded in the CTFetcher.get_api_data method
+            # Create trial - publication edges from trial data
             for pmid, ref_type in trial.references:
-                if ref_type.lower() == "result" and (pmid, trial.ns_id) in pubmed_trial_links:
-                    self.trial_publication_edges.append(
-                        PublicationEdge(
-                            trial=trial.curie,
-                            publication=pmid,
-                        )
+                self.trial_publication_edges.append(
+                    PublicationEdge(
+                        trial=trial.curie,
+                        publication=pmid,
+                        source="clinicaltrials.gov",
+                        ref_type=ref_type,
                     )
+                )
+
+        # Create trial - publication edges from PubMed XML data
+        for pmid, nct_id in tqdm(
+            pubmed_trial_links,
+            desc="Processing PubMed data",
+            unit="publication",
+            unit_scale=True,
+        ):
+            self.trial_publication_edges.append(
+                PublicationEdge(
+                    trial=nct_id,
+                    publication=pmid,
+                    source="pubmed",
+                )
+            )
 
     def save_trial_data(
         self, path: Path, sample_path: Optional[Path] = None
@@ -403,8 +417,8 @@ class Processor:
         path :
             The path to save the processed trial publication edges
         sample_path :
-            If provided, save the processed trial publication edges
-            (default: None).
+            If provided, save a sample of the processed trial publication edges
+            to this path. Defaults to None.
         """
         edges = [
             self.transformer.flatten_trial_publication_edge(edge)
@@ -419,6 +433,8 @@ class Processor:
                 "trial_id",
                 "pmid",
                 "rel_type",
+                "source",
+                "ref_type",
             ],
             sample_path=sample_path,
             num_samples=self.config.num_sample_entries,
