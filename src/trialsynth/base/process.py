@@ -290,11 +290,11 @@ class Processor:
             for nct_id in nct_ids:
                 self.trial_publication_edges.append(
                     PublicationEdge(
-                        trial=nct_id,
-                            publication=pmid,
-                            source="pubmed",
-                        )
+                        trial=f"clinicaltrials:{nct_id}",
+                        publication=pmid,
+                        source="pubmed",
                     )
+                )
 
     def save_trial_data(
         self, path: Path, sample_path: Optional[Path] = None
