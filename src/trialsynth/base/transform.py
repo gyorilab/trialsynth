@@ -185,7 +185,9 @@ class Transformer:
         )
 
     @staticmethod
-    def flatten_trial_publication_edge(trial_pub_edge: PublicationEdge) -> Tuple[str, str, str]:
+    def flatten_trial_publication_edge(
+        trial_pub_edge: PublicationEdge
+    ) -> Tuple[str, str, str, str, str]:
         """Flattens a PublicationEdge into a tuple of strings.
 
         Parameters
@@ -197,10 +199,12 @@ class Transformer:
         -------
         :
             A tuple of the flattened PublicationEdge. In order of trial_curie,
-            pmid, rel_type
+            pmid, rel_type, source, ref_type
         """
         return (
             trial_pub_edge.trial,
             trial_pub_edge.publication,
             trial_pub_edge.rel_type,
+            trial_pub_edge.source,
+            trial_pub_edge.ref_type or "",
         )

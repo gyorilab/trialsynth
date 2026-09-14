@@ -458,7 +458,11 @@ class PublicationEdge:
         self,
         trial: str,
         publication: str,
+        source: str,
+        ref_type: Optional[str] = None,
     ):
         self.trial = trial
         self.publication = publication
         self.rel_type = "has_publication"
+        self.source = source
+        self.ref_type = ref_type
